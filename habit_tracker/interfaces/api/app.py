@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List
 from uuid import UUID
 
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Query
 from pydantic import BaseModel
 
 from habit_tracker.application.services import HabitTrackerService
@@ -14,9 +14,12 @@ from habit_tracker.domain.streak import Streak
 from habit_tracker.infrastructure.inmemory_repositories import (
     InMemoryHabitRepository,
     InMemoryCompletionRepository,
+    InMemoryReminderRepository,
 )
 from habit_tracker.infrastructure.clock import SystemClock
 from habit_tracker.infrastructure.event_bus import InMemoryEventBus
+from habit_tracker.application.reminder_handlers import ReminderEventHandler
+from habit_tracker.domain.events import HabitCreated, HabitCompleted
 
 
 # --------------------------
@@ -48,6 +51,13 @@ class StreakRead(BaseModel):
     last_completed_at: datetime | None
 
 
+class ReminderRead(BaseModel):
+    id: UUID
+    habit_id: UUID
+    next_due_at: datetime
+    active: bool
+
+
 # --------------------------
 # Dependency injection
 # --------------------------
@@ -69,15 +79,25 @@ def create_app() -> FastAPI:
     """Create a FastAPI app wired with in-memory repositories and SystemClock."""
     habit_repo = InMemoryHabitRepository()
     completion_repo = InMemoryCompletionRepository()
+    reminder_repo = InMemoryReminderRepository()
     clock = SystemClock()
     event_bus = InMemoryEventBus()
 
     service = HabitTrackerService(
         habit_repo=habit_repo,
         completion_repo=completion_repo,
+        reminder_repo=reminder_repo,
         clock=clock,
         event_bus=event_bus,
     )
+
+    reminder_handler = ReminderEventHandler(
+        habit_repo=habit_repo,
+        reminder_repo=reminder_repo,
+        clock=clock,
+    )
+    event_bus.subscribe(HabitCreated, reminder_handler.on_habit_created)
+    event_bus.subscribe(HabitCompleted, reminder_handler.on_habit_completed)
 
     app = FastAPI(title="Habit Tracker API", version="0.1.0")
 
@@ -145,6 +165,43 @@ def create_app() -> FastAPI:
             count=streak.count,
             last_completed_at=streak.last_completed_at,
         )
+
+    @app.get("/habits/{habit_id}/reminder", response_model=ReminderRead)
+    def get_habit_reminder(
+        habit_id: UUID,
+        service: HabitTrackerService = Depends(get_service),
+    ) -> ReminderRead:
+        reminder = service.get_reminder(habit_id)
+        if reminder is None:
+            raise HTTPException(status_code=404, detail="Reminder not found for habit")
+        return ReminderRead(
+            id=reminder.id,
+            habit_id=reminder.habit_id,
+            next_due_at=reminder.next_due_at,
+            active=reminder.active,
+        )
+
+    @app.get("/reminders/due", response_model=List[ReminderRead])
+    def list_due_reminders(
+        before: datetime | None = Query(
+            default=None,
+            description="Return reminders with next_due_at <= this time (defaults to now).",
+        ),
+        service: HabitTrackerService = Depends(get_service),
+    ) -> List[ReminderRead]:
+        if before is None:
+            before = datetime.utcnow()
+
+        reminders = service.list_due_reminders(before)
+        return [
+            ReminderRead(
+                id=r.id,
+                habit_id=r.habit_id,
+                next_due_at=r.next_due_at,
+                active=r.active,
+            )
+            for r in reminders
+        ]
 
     return app
 

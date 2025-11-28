@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from uuid import UUID
 
@@ -92,6 +92,9 @@ class InMemoryReminderRepository(ReminderRepository):
         return self._by_habit_id.get(habit_id)
 
     def list_due(self, before: datetime) -> List[Reminder]:
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=timezone.utc)
+
         due: List[Reminder] = []
         for r in self._by_habit_id.values():
             if not r.active:

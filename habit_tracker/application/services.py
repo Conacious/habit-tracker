@@ -12,7 +12,7 @@ from habit_tracker.domain.streak_rules import StreakRule
 from habit_tracker.domain.streak_factory import make_streak_rule
 from habit_tracker.domain.events import DomainEvent
 
-from .repositories import HabitRepository, CompletionRepository
+from .repositories import HabitRepository, CompletionRepository, ReminderRepository
 from .event_bus import EventBus
 
 
@@ -23,6 +23,7 @@ class HabitTrackerService:
     habit_repo: HabitRepository
     completion_repo: CompletionRepository
     clock: Clock
+    reminder_repo: ReminderRepository | None = None
     event_bus: EventBus | None = None
 
     # ------------------------------
@@ -87,6 +88,24 @@ class HabitTrackerService:
 
         streak = rule.calculate(habit=habit, completions=completions, now=now)
         return streak
+
+    # ------------------------------
+    # Reminders
+    # ------------------------------
+
+    def get_reminder(self, habit_id: UUID) -> Reminder | None:
+        if self.reminder_repo is None:
+            return None
+
+        return self.reminder_repo.get_by_habit_id(habit_id)
+
+    def list_due_reminders(
+        self, before: datetime | None = None
+    ) -> list[Reminder] | None:
+        if self.reminder_repo is None:
+            return None
+
+        return self.reminder_repo.list_due(before=before)
 
     # ------------------------------
     # Internal helpers
