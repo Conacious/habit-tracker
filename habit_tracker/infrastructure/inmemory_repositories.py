@@ -9,6 +9,7 @@ from habit_tracker.domain.completion import Completion
 from habit_tracker.application.repositories import (
     HabitRepository,
     CompletionRepository,
+    ReminderRepository,
 )
 
 
@@ -65,3 +66,36 @@ class InMemoryCompletionRepository(CompletionRepository):
             if start <= c.completed_at <= end:
                 result.append(c)
         return result
+
+
+from habit_tracker.domain.reminder import Reminder
+from habit_tracker.application.repositories import (
+    HabitRepository,
+    CompletionRepository,
+    ReminderRepository,  # NEW
+)
+
+
+class InMemoryReminderRepository(ReminderRepository):
+    """Simple in-memory reminder store.
+
+    We assume one reminder per habit. We store by habit_id.
+    """
+
+    def __init__(self) -> None:
+        self._by_habit_id: dict[UUID, Reminder] = {}
+
+    def add(self, reminder: Reminder) -> None:
+        self._by_habit_id[reminder.habit_id] = reminder
+
+    def get_by_habit_id(self, habit_id: UUID) -> Reminder | None:
+        return self._by_habit_id.get(habit_id)
+
+    def list_due(self, before: datetime) -> List[Reminder]:
+        due: List[Reminder] = []
+        for r in self._by_habit_id.values():
+            if not r.active:
+                continue
+            if r.next_due_at <= before:
+                due.append(r)
+        return due

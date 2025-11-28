@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from dataclasses import dataclass
 
 
@@ -64,3 +65,32 @@ class Schedule:
     @property
     def is_monthly(self) -> bool:
         return self.raw == "monthly"
+
+    @property
+    def is_times_per_week(self) -> bool:
+        return self.raw.startswith("times_per_week:")
+
+    # --- Schedule computation --------------------------------------------
+
+    def next_due_from(self, now: datetime) -> datetime:
+        """Compute the next due datetime based on this schedule and a starting point.
+
+        This is intentionally simple.
+        """
+        if self.is_daily:
+            return now + timedelta(days=1)
+
+        if self.is_weekly:
+            return now + timedelta(days=7)
+
+        if self.is_monthly:
+            # Very rough approximation: 30 days
+            return now + timedelta(days=30)
+
+        if self.is_times_per_week:
+            # For now, we don't try to be smart; we just say:
+            # "remind again tomorrow"
+            return now + timedelta(days=1)
+
+        # If somehow we get here, fallback to "tomorrow"
+        return now + timedelta(days=1)

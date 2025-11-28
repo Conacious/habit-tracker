@@ -5,6 +5,7 @@ from .events import DomainEvent, HabitCompleted, HabitCreated
 from .event_collector import EventCollector
 from .schedule import Schedule
 from .streak import Streak
+from .reminder import Reminder
 from .streak_rules import (
     StreakRule,
     DailyStreakRule,
