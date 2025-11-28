@@ -13,6 +13,7 @@ A simple, clean, and efficient Habit Tracker API built with Python and FastAPI. 
 ## Prerequisites
 
 - **Python 3.11+**
+- **Poetry** (for dependency management)
 - **Docker** (optional, for containerized execution)
 
 ## Getting Started
@@ -25,24 +26,18 @@ A simple, clean, and efficient Habit Tracker API built with Python and FastAPI. 
     cd habit-tracker
     ```
 
-2.  **Create and activate a virtual environment:**
+2.  **Install dependencies:**
     ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
+    poetry install
     ```
 
-3.  **Install dependencies:**
+3.  **Run the application:**
     ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Run the application:**
-    ```bash
-    uvicorn habit_tracker.interfaces.api.app:app --reload
+    poetry run uvicorn habit_tracker.interfaces.api.app:app --reload
     ```
     The API will be available at `http://127.0.0.1:8000`.
 
-5.  **Explore the API:**
+4.  **Explore the API:**
     Open your browser and navigate to `http://127.0.0.1:8000/docs` to see the interactive Swagger UI documentation.
 
 ### Running with Docker
@@ -57,16 +52,16 @@ A simple, clean, and efficient Habit Tracker API built with Python and FastAPI. 
 
 ## Running Tests
 
-To run the test suite, make sure you have the development dependencies installed (included in `requirements.txt`).
+To run the test suite:
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 To run tests with coverage:
 
 ```bash
-pytest --cov=habit_tracker
+poetry run pytest --cov=habit_tracker
 ```
 
 ## Project Structure
