@@ -8,6 +8,7 @@ A simple, clean, and efficient Habit Tracker API built with Python and FastAPI. 
 - **Track Completions**: Mark habits as completed for a given day.
 - **Calculate Streaks**: Automatically calculate current streaks based on completion history.
 - **In-Memory Storage**: Currently uses in-memory repositories for simplicity (data is lost on restart).
+- **Event Bus**: Publishes domain events. More information at [Event Bus Architecture](docs/event_bus.md).
 
 ## Prerequisites
 

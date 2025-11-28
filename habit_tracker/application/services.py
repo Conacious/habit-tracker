@@ -10,41 +10,39 @@ from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.streak import Streak
 from habit_tracker.domain.streak_rules import StreakRule
 from habit_tracker.domain.streak_factory import make_streak_rule
+from habit_tracker.domain.events import DomainEvent
 
 from .repositories import HabitRepository, CompletionRepository
+from .event_bus import EventBus
 
 
 @dataclass
 class HabitTrackerService:
-    """Application service coordinating domain objects and repositories.
-
-    Important: this layer does NOT know whether storage is in-memory, SQLite, etc.
-    It only talks to the repository interfaces (ports).
-    """
+    """Application service coordinating domain objects and repositories."""
 
     habit_repo: HabitRepository
     completion_repo: CompletionRepository
     clock: Clock
+    event_bus: EventBus | None = None
 
     # ------------------------------
     # Habits
     # ------------------------------
 
     def create_habit(self, name: str, schedule: Schedule) -> Habit:
-        """Create and store a new habit, returning the Habit entity.
-
-        Domain events are returned by Habit.create, but we ignore them for now.
-        We'll hook an event bus later.
-        """
-        # Depending on your implementation, Habit.create might return:
-        # - (habit, event) or just habit. We assume (habit, event) from your homework.
-        habit, _event = Habit.create(
+        result = Habit.create(
             name=name,
             schedule=schedule,
             clock=self.clock,
         )
 
+        if isinstance(result, tuple):
+            habit, event = result
+        else:
+            habit, event = result, None
+
         self.habit_repo.add(habit)
+        self._publish(event)
         return habit
 
     def list_habits(self) -> list[Habit]:
@@ -55,15 +53,20 @@ class HabitTrackerService:
     # ------------------------------
 
     def complete_habit(self, habit_id: UUID) -> Completion:
-        """Record a completion for the given habit and store it."""
         habit = self.habit_repo.get(habit_id)
 
-        completion, _event = Completion.record(
+        result = Completion.record(
             habit=habit,
             clock=self.clock,
         )
 
+        if isinstance(result, tuple):
+            completion, event = result
+        else:
+            completion, event = result, None
+
         self.completion_repo.add(completion)
+        self._publish(event)
         return completion
 
     # ------------------------------
@@ -75,10 +78,6 @@ class HabitTrackerService:
         habit_id: UUID,
         rule: StreakRule | None = None,
     ) -> Streak:
-        """Calculate the streak for a habit using the given rule.
-
-        If rule is None, choose one based on the habit's schedule.
-        """
         habit = self.habit_repo.get(habit_id)
         completions = self.completion_repo.list_for_habit(habit_id)
         now = self.clock.now()
@@ -88,3 +87,15 @@ class HabitTrackerService:
 
         streak = rule.calculate(habit=habit, completions=completions, now=now)
         return streak
+
+    # ------------------------------
+    # Internal helpers
+    # ------------------------------
+
+    def _publish(self, event: DomainEvent | None) -> None:
+        """Publish an event if we have an event bus configured."""
+        if event is None:
+            return
+        if self.event_bus is None:
+            return
+        self.event_bus.publish(event)

@@ -16,6 +16,7 @@ from habit_tracker.infrastructure.inmemory_repositories import (
     InMemoryCompletionRepository,
 )
 from habit_tracker.infrastructure.clock import SystemClock
+from habit_tracker.infrastructure.event_bus import InMemoryEventBus
 
 
 # --------------------------
@@ -69,11 +70,13 @@ def create_app() -> FastAPI:
     habit_repo = InMemoryHabitRepository()
     completion_repo = InMemoryCompletionRepository()
     clock = SystemClock()
+    event_bus = InMemoryEventBus()
 
     service = HabitTrackerService(
         habit_repo=habit_repo,
         completion_repo=completion_repo,
         clock=clock,
+        event_bus=event_bus,
     )
 
     app = FastAPI(title="Habit Tracker API", version="0.1.0")

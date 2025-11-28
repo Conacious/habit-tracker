@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from uuid import UUID
 from datetime import datetime
 from habit_tracker.domain import Habit, Completion, Schedule, HabitCompleted
 
@@ -32,3 +33,20 @@ def make_habit_and_completion(
     completion, event = Completion.record(habit=habit, clock=clock)
 
     return habit, completion, event
+
+
+class CompletionCounter:
+    # Map habit_id to number of completions
+    counter: dict[UUID, int]
+
+    def __init__(self) -> None:
+        self.counter = {}
+
+    def habit_completed(self, event: HabitCompleted) -> None:
+        if event.habit_id not in self.counter:
+            self.counter[event.habit_id] = 1
+        else:
+            self.counter[event.habit_id] += 1
+
+    def get_count(self, habit_id: UUID) -> int:
+        return self.counter.get(habit_id, 0)
