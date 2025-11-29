@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from habit_tracker.infrastructure.sqlite_repositories import (
+    SQLiteCompletionRepository,
+    SQLiteHabitRepository,
+    SQLiteReminderRepository,
+)
+
 from dataclasses import asdict
 from datetime import datetime
 from typing import List
@@ -16,10 +22,17 @@ from habit_tracker.infrastructure.inmemory_repositories import (
     InMemoryCompletionRepository,
     InMemoryReminderRepository,
 )
+from habit_tracker.application import (
+    HabitRepository,
+    CompletionRepository,
+    ReminderRepository,
+)
 from habit_tracker.infrastructure.clock import SystemClock
 from habit_tracker.infrastructure.event_bus import InMemoryEventBus
 from habit_tracker.application.reminder_handlers import ReminderEventHandler
 from habit_tracker.domain.events import HabitCreated, HabitCompleted
+import os
+import sqlite3
 
 
 # --------------------------
@@ -71,15 +84,51 @@ def get_service(request: Request) -> HabitTrackerService:
 
 
 # --------------------------
+# Auxiliary functions
+# --------------------------
+
+
+def _get_database_mode() -> str:
+    return os.getenv("DATABASE_MODE", "sqlite")  # Availble options: inmemory, sqlite
+
+
+# --------------------------
+# Repositories factory
+# --------------------------
+
+
+def _build_repositories() -> (
+    tuple[HabitRepository, CompletionRepository, ReminderRepository]
+):
+    database_mode = _get_database_mode()
+
+    if database_mode == "inmemory":
+        return (
+            InMemoryHabitRepository(),
+            InMemoryCompletionRepository(),
+            InMemoryReminderRepository(),
+        )
+
+    if database_mode == "sqlite":
+        db_path = os.getenv("HABIT_DB_PATH", "habit_tracker.db")
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        return (
+            SQLiteHabitRepository(conn),
+            SQLiteCompletionRepository(conn),
+            SQLiteReminderRepository(conn),
+        )
+
+    raise ValueError(f"Unknown database mode: {database_mode}")
+
+
+# --------------------------
 # App factory
 # --------------------------
 
 
 def create_app() -> FastAPI:
-    """Create a FastAPI app wired with in-memory repositories and SystemClock."""
-    habit_repo = InMemoryHabitRepository()
-    completion_repo = InMemoryCompletionRepository()
-    reminder_repo = InMemoryReminderRepository()
+    """Create a FastAPI app wired with in-memory/sqlite (based on DATABASE_MODE env var) repositories and SystemClock."""
+    habit_repo, completion_repo, reminder_repo = _build_repositories()
     clock = SystemClock()
     event_bus = InMemoryEventBus()
 

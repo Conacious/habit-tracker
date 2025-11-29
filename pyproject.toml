@@ -7,7 +7,7 @@ authors = [
 ]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = "^3.11"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi (>=0.122.0,<0.123.0)",
     "uvicorn[standard] (>=0.38.0,<0.39.0)",
@@ -19,7 +19,13 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [dependency-groups]
-dev = ["pytest (>=9.0.1,<10.0.0)", "pytest-cov (>=7.0.0,<8.0.0)", "httpx (>=0.28.1,<0.29.0)"]
+dev = [
+    "pytest (>=9.0.1,<10.0.0)",
+    "pytest-cov (>=7.0.0,<8.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "mypy (>=1.19.0,<2.0.0)",
+    "ruff (>=0.14.7,<0.15.0)",
+]
 
 [tool.poetry]
 name = "habit-tracker"
@@ -27,3 +33,46 @@ version = "0.1.0"
 description = "Event-driven habit tracker backend"
 authors = ["Victor Moreno Jimenez <victormoreno@protonmail.com>"]
 packages = [{ include = "habit_tracker" }]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+pretty = true
+show_error_codes = true
+
+# What to type-check by default
+packages = ["habit_tracker", "tests"]
+
+# Good defaults
+check_untyped_defs = true
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+warn_unused_ignores = true
+warn_unused_configs = true
+no_implicit_optional = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["habit_tracker", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # bugbear
+    "UP", # pyupgrade
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
