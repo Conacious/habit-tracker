@@ -10,10 +10,12 @@ from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.completion import Completion
 from habit_tracker.domain.reminder import Reminder
 from habit_tracker.domain.schedule import Schedule
+from habit_tracker.domain.user import User
 from habit_tracker.application.repositories import (
     HabitRepository,
     CompletionRepository,
     ReminderRepository,
+    UserRepository,
 )
 
 
@@ -61,6 +63,17 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            hashed_password TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            is_active INTEGER NOT NULL
+        )
+        """
+    )
     conn.commit()
 
 
@@ -289,3 +302,96 @@ class SQLiteReminderRepository(ReminderRepository):
                 )
             )
         return reminders
+
+
+class SQLiteUserRepository(UserRepository):
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+        _create_schema(self._conn)
+
+    def add(self, user: User) -> None:
+        self._conn.execute(
+            """
+            INSERT INTO users (id, email, hashed_password, created_at, is_active)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                email = excluded.email,
+                hashed_password = excluded.hashed_password,
+                created_at = excluded.created_at,
+                is_active = excluded.is_active
+            """,
+            (
+                _uuid_to_str(user.id),
+                user.email,
+                user.hashed_password,
+                _dt_to_str(user.created_at),
+                1 if user.is_active else 0,
+            ),
+        )
+        self._conn.commit()
+
+    def get(self, user_id: UUID) -> User:
+        cur = self._conn.execute(
+            "SELECT id, email, hashed_password, created_at, is_active FROM users WHERE id = ?",
+            (_uuid_to_str(user_id),),
+        )
+        row = cur.fetchone()
+        if row is None:
+            raise KeyError(f"User {user_id} not found")
+
+        id_str, email, hashed_password, created_at_str, is_active_int = row
+        return User(
+            id=_uuid_from_str(id_str),
+            email=email,
+            hashed_password=hashed_password,
+            created_at=_dt_from_str(created_at_str),
+            is_active=bool(is_active_int),
+        )
+
+    def get_by_email(self, email: str) -> User | None:
+        cur = self._conn.execute(
+            "SELECT id, email, hashed_password, created_at, is_active FROM users WHERE email = ?",
+            (email,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return None
+
+        id_str, email, hashed_password, created_at_str, is_active_int = row
+        return User(
+            id=_uuid_from_str(id_str),
+            email=email,
+            hashed_password=hashed_password,
+            created_at=_dt_from_str(created_at_str),
+            is_active=bool(is_active_int),
+        )
+
+    def list_all(self) -> List[User]:
+        cur = self._conn.execute(
+            "SELECT id, email, hashed_password, created_at, is_active FROM users"
+        )
+        users: List[User] = []
+        for (
+            id_str,
+            email,
+            hashed_password,
+            created_at_str,
+            is_active_int,
+        ) in cur.fetchall():
+            users.append(
+                User(
+                    id=_uuid_from_str(id_str),
+                    email=email,
+                    hashed_password=hashed_password,
+                    created_at=_dt_from_str(created_at_str),
+                    is_active=bool(is_active_int),
+                )
+            )
+        return users
+
+    def remove(self, user_id: UUID) -> None:
+        self._conn.execute(
+            "DELETE FROM users WHERE id = ?",
+            (_uuid_to_str(user_id),),
+        )
+        self._conn.commit()

@@ -7,10 +7,12 @@ from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.completion import Completion
 from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.reminder import Reminder
+from habit_tracker.domain.user import User
 from habit_tracker.infrastructure.sqlite_repositories import (
     SQLiteHabitRepository,
     SQLiteCompletionRepository,
     SQLiteReminderRepository,
+    SQLiteUserRepository,
 )
 from tests.utils import FakeClock
 
@@ -124,3 +126,26 @@ def test_sqlite_reminder_repository_roundtrip() -> None:
     # Due query
     due = reminder_repo.list_due(datetime(2025, 1, 3, 0, 0, 0))
     assert any(r.habit_id == habit.id for r in due)
+
+
+def test_sqlite_user_repository_roundtrip() -> None:
+    conn = _make_connection()
+    user_repo = SQLiteUserRepository(conn)
+    clock = FakeClock(datetime(2025, 1, 1, 9, 0, 0))
+
+    user = User.create(
+        email="test@example.com",
+        hashed_password="password",
+        clock=clock,
+    )
+    user_repo.add(user)
+
+    loaded = user_repo.get(user.id)
+    assert loaded == user
+
+    all_users = user_repo.list_all()
+    assert user in all_users
+
+    user_repo.remove(user.id)
+    all_after_remove = user_repo.list_all()
+    assert user not in all_after_remove

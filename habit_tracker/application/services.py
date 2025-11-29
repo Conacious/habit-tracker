@@ -11,8 +11,15 @@ from habit_tracker.domain.streak import Streak
 from habit_tracker.domain.streak_rules import StreakRule
 from habit_tracker.domain.streak_factory import make_streak_rule
 from habit_tracker.domain.events import DomainEvent
+from habit_tracker.domain.user import User
+from habit_tracker.application.security import hash_password
 
-from .repositories import HabitRepository, CompletionRepository, ReminderRepository
+from .repositories import (
+    HabitRepository,
+    CompletionRepository,
+    ReminderRepository,
+    UserRepository,
+)
 from .event_bus import EventBus
 
 
@@ -118,3 +125,29 @@ class HabitTrackerService:
         if self.event_bus is None:
             return
         self.event_bus.publish(event)
+
+
+class EmailAlreadyRegisteredError(Exception):
+    pass
+
+
+@dataclass
+class UserRegistrationService:
+    user_repo: UserRepository
+    clock: Clock
+
+    def register_user(self, email: str, password: str) -> User:
+        existing = self.user_repo.get_by_email(email)
+        if existing is not None:
+            raise EmailAlreadyRegisteredError(f"Email already registered: {email}")
+
+        # TODO: you can add some simple validation:
+        # if len(password) < 8: raise ValueError("Password too short")
+
+        hashed = hash_password(password)
+        user = User.create(email=email, hashed_password=hashed, clock=self.clock)
+        self.user_repo.add(user)
+        return user
+
+    def list_users(self) -> list[User]:
+        return self.user_repo.list_all()

@@ -10,6 +10,7 @@ from habit_tracker.application.repositories import (
     HabitRepository,
     CompletionRepository,
     ReminderRepository,
+    UserRepository,
 )
 
 
@@ -102,3 +103,25 @@ class InMemoryReminderRepository(ReminderRepository):
             if r.next_due_at <= before:
                 due.append(r)
         return due
+
+
+class InMemoryUserRepository(UserRepository):
+    """Simple in-memory user store using a dict."""
+
+    def __init__(self) -> None:
+        self._users: dict[UUID, User] = {}
+
+    def add(self, user: User) -> None:
+        self._users[user.id] = user
+
+    def get_by_email(self, email: str) -> User | None:
+        for user in self._users.values():
+            if user.email == email:
+                return user
+        return None
+
+    def list_all(self) -> List[User]:
+        return list(self._users.values())
+
+    def remove(self, user_id: UUID) -> None:
+        self._users.pop(user_id, None)

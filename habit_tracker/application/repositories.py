@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Protocol, List
 from uuid import UUID
 
-from habit_tracker.domain import Habit, Completion, Reminder
+from habit_tracker.domain import Habit, Completion, Reminder, User
 
 
 class HabitRepository(Protocol):
@@ -61,4 +61,28 @@ class ReminderRepository(Protocol):
 
     def list_due(self, before: datetime) -> List[Reminder]:
         """Return all reminders with next_due_at <= 'before' and active=True."""
+        ...
+
+
+class UserRepository(Protocol):
+    """Port for storing and retrieving users."""
+
+    def add(self, user: User) -> None:
+        """Store a new user or overwrite an existing one with the same ID."""
+        ...
+
+    def get(self, user_id: UUID) -> User:
+        """Return the user with the given ID, or raise an error if not found."""
+        ...
+
+    def get_by_email(self, email: str) -> User | None:
+        """Return the user with the given email, or None if not found."""
+        ...
+
+    def list_all(self) -> List[User]:
+        """Return all users."""
+        ...
+
+    def remove(self, user_id: UUID) -> None:
+        """Remove a user (no-op if it doesn't exist)."""
         ...

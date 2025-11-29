@@ -6,6 +6,7 @@ from .event_collector import EventCollector
 from .schedule import Schedule
 from .streak import Streak
 from .reminder import Reminder
+from .user import User
 from .streak_rules import (
     StreakRule,
     DailyStreakRule,
@@ -29,6 +30,7 @@ __all__ = [
     "TimesPerWeekStreakRule",
     "_find_last_completion",
     "_find_first_completion",
+    "User",
 ]
 
 # This makes it a bit nicer to import from habit_tracker.domain

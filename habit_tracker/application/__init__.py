@@ -1,5 +1,14 @@
-from .repositories import HabitRepository, CompletionRepository, ReminderRepository
-from .services import HabitTrackerService
+from .repositories import (
+    HabitRepository,
+    CompletionRepository,
+    ReminderRepository,
+    UserRepository,
+)
+from .services import (
+    HabitTrackerService,
+    UserRegistrationService,
+    EmailAlreadyRegisteredError,
+)
 from .event_bus import EventBus
 
 __all__ = [
@@ -8,4 +17,7 @@ __all__ = [
     "ReminderRepository",
     "HabitTrackerService",
     "EventBus",
+    "UserRepository",
+    "UserRegistrationService",
+    "EmailAlreadyRegisteredError",
 ]
