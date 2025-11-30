@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from uuid import uuid4
 
 from habit_tracker.domain.events import DomainEvent, HabitCompleted, HabitCreated
-from habit_tracker.application.event_bus import EventHandler
 from habit_tracker.infrastructure.event_bus import InMemoryEventBus
 
 
 def test_event_bus_calls_subscribed_handler() -> None:
     bus = InMemoryEventBus()
-    received: List[DomainEvent] = []
+    received: list[DomainEvent] = []
 
     def handler(event: DomainEvent) -> None:
         received.append(event)
@@ -19,7 +18,7 @@ def test_event_bus_calls_subscribed_handler() -> None:
 
     event = HabitCompleted(
         occurred_at=datetime(2025, 1, 1, 10, 0, 0),
-        habit_id=None,
+        habit_id=uuid4(),
         completed_at=datetime(2025, 1, 1, 10, 0, 0),
     )
 
@@ -31,8 +30,8 @@ def test_event_bus_calls_subscribed_handler() -> None:
 
 def test_event_bus_two_handlers_same_event() -> None:
     bus = InMemoryEventBus()
-    received_1: List[DomainEvent] = []
-    received_2: List[DomainEvent] = []
+    received_1: list[DomainEvent] = []
+    received_2: list[DomainEvent] = []
 
     def handler_1(event: DomainEvent) -> None:
         received_1.append(event)
@@ -45,7 +44,7 @@ def test_event_bus_two_handlers_same_event() -> None:
 
     event = HabitCompleted(
         datetime(2025, 1, 1, 0, 0),
-        habit_id=None,
+        habit_id=uuid4(),
         completed_at=datetime(2025, 1, 1, 1, 0),
     )
 
@@ -57,7 +56,7 @@ def test_event_bus_two_handlers_same_event() -> None:
 
 def test_handler_not_called_different_event() -> None:
     bus = InMemoryEventBus()
-    received: List[DomainEvent] = []
+    received: list[DomainEvent] = []
 
     def handler(event: DomainEvent) -> None:
         received.append(event)
@@ -66,7 +65,7 @@ def test_handler_not_called_different_event() -> None:
 
     event = HabitCreated(
         occurred_at=datetime(2025, 1, 1, 1, 0),
-        habit_id=None,
+        habit_id=uuid4(),
         name="habit",
     )
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
-from jose import jwt
 import os
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 SECRET_KEY = os.getenv("HABIT_SECRET_KEY", "dev-secret-change-me")
 ALGORITHM = "HS256"
@@ -26,10 +26,10 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    data: Dict[str, Any], expires_delta: timedelta | None = None
+    data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
     to_encode = data.copy()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if expires_delta is None:
         expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -41,7 +41,7 @@ def create_access_token(
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Dict[str, Any]:
+def decode_access_token(token: str) -> dict[str, Any]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError as exc:

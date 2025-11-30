@@ -3,19 +3,19 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime, timedelta
 
-from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.completion import Completion
-from habit_tracker.domain.schedule import Schedule
+from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.reminder import Reminder
+from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.user import User
 from habit_tracker.infrastructure.sqlite_repositories import (
-    SQLiteHabitRepository,
     SQLiteCompletionRepository,
+    SQLiteHabitRepository,
     SQLiteReminderRepository,
     SQLiteUserRepository,
 )
+
 from tests.utils import FakeClock
-from uuid import uuid4, UUID
 
 
 def _make_connection() -> sqlite3.Connection:

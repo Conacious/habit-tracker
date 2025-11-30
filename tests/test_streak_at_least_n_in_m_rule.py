@@ -1,11 +1,11 @@
-import pytest
-from datetime import datetime, timedelta
-from uuid import uuid4, UUID
+from datetime import datetime
+from uuid import UUID, uuid4
 
-from habit_tracker.domain.streak_rules import AtLeastNDaysInLastMDaysRule
+import pytest
+from habit_tracker.domain.completion import Completion
 from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.schedule import Schedule
-from habit_tracker.domain.completion import Completion
+from habit_tracker.domain.streak_rules import AtLeastNDaysInLastMDaysRule
 
 
 def test_init_validation():

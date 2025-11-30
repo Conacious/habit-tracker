@@ -1,26 +1,28 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
+from habit_tracker.application.security import hash_password, verify_password
 from habit_tracker.domain.clock import Clock
-from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.completion import Completion
+from habit_tracker.domain.events import DomainEvent
+from habit_tracker.domain.habit import Habit
+from habit_tracker.domain.reminder import Reminder
 from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.streak import Streak
-from habit_tracker.domain.streak_rules import StreakRule
 from habit_tracker.domain.streak_factory import make_streak_rule
-from habit_tracker.domain.events import DomainEvent
+from habit_tracker.domain.streak_rules import StreakRule
 from habit_tracker.domain.user import User
-from habit_tracker.application.security import hash_password, verify_password
 
+from .event_bus import EventBus
 from .repositories import (
-    HabitRepository,
     CompletionRepository,
+    HabitRepository,
     ReminderRepository,
     UserRepository,
 )
-from .event_bus import EventBus
 
 
 @dataclass
@@ -123,6 +125,9 @@ class HabitTrackerService:
     ) -> list[Reminder] | None:
         if self.reminder_repo is None:
             return None
+
+        if before is None:
+            before = self.clock.now()
 
         return self.reminder_repo.list_due(before=before)
 

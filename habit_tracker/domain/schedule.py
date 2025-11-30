@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 
 @dataclass(frozen=True)

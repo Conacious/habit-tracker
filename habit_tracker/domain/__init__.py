@@ -1,19 +1,19 @@
 from .clock import Clock
-from .habit import Habit
 from .completion import Completion
-from .events import DomainEvent, HabitCompleted, HabitCreated
 from .event_collector import EventCollector
+from .events import DomainEvent, HabitCompleted, HabitCreated
+from .habit import Habit
+from .helpers import _find_first_completion, _find_last_completion
+from .reminder import Reminder
 from .schedule import Schedule
 from .streak import Streak
-from .reminder import Reminder
-from .user import User
 from .streak_rules import (
-    StreakRule,
-    DailyStreakRule,
-    TimesPerWeekStreakRule,
     AtLeastNDaysInLastMDaysRule,
+    DailyStreakRule,
+    StreakRule,
+    TimesPerWeekStreakRule,
 )
-from .helpers import _find_last_completion, _find_first_completion
+from .user import User
 
 __all__ = [
     "Clock",
@@ -28,6 +28,8 @@ __all__ = [
     "StreakRule",
     "DailyStreakRule",
     "TimesPerWeekStreakRule",
+    "AtLeastNDaysInLastMDaysRule",
+    "Reminder",
     "_find_last_completion",
     "_find_first_completion",
     "User",

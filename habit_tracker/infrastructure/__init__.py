@@ -1,13 +1,13 @@
+from .event_bus import InMemoryEventBus  # NEW
 from .inmemory_repositories import (
-    InMemoryHabitRepository,
     InMemoryCompletionRepository,
+    InMemoryHabitRepository,
     InMemoryReminderRepository,
     InMemoryUserRepository,
 )
-from .event_bus import InMemoryEventBus  # NEW
 from .sqlite_repositories import (
-    SQLiteHabitRepository,
     SQLiteCompletionRepository,
+    SQLiteHabitRepository,
     SQLiteReminderRepository,
     SQLiteUserRepository,
 )

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import pytest
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
+import pytest
 from habit_tracker.domain import Streak
-
 
 streak = Streak(habit_id=UUID(int=1), count=3, last_completed_at=datetime(2023, 1, 1))
 

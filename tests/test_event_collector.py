@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from habit_tracker.domain import EventCollector, Habit, Schedule
-from .utils import FakeClock
 from uuid import UUID
+
+from habit_tracker.domain import EventCollector, Habit, Schedule
+
+from .utils import FakeClock
 
 
 def test_collect_adds_event_to_collector() -> None:

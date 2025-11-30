@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Dict, List, Type
+from collections.abc import Callable
+from typing import Any, TypeVar
 
+from habit_tracker.application.event_bus import EventBus
 from habit_tracker.domain.events import DomainEvent
-from habit_tracker.application.event_bus import EventBus, EventHandler
+
+E = TypeVar("E", bound=DomainEvent)
 
 
 class InMemoryEventBus(EventBus):
@@ -15,9 +18,9 @@ class InMemoryEventBus(EventBus):
 
     def __init__(self) -> None:
         # Example: { HabitCompleted: [handler1, handler2], HabitCreated: [handler3] }
-        self._subscribers: Dict[Type[DomainEvent], List[EventHandler]] = {}
+        self._subscribers: dict[type[DomainEvent], list[Any]] = {}
 
-    def subscribe(self, event_type: Type[DomainEvent], handler: EventHandler) -> None:
+    def subscribe(self, event_type: type[E], handler: Callable[[E], None]) -> None:
         handlers = self._subscribers.get(event_type)
         if handlers is None:
             handlers = []
@@ -35,9 +38,9 @@ class InMemoryEventBus(EventBus):
 
 class SafeInMemoryEventBus(EventBus):
     def __init__(self) -> None:
-        self._subscribers: Dict[Type[DomainEvent], List[EventHandler]] = {}
+        self._subscribers: dict[type[DomainEvent], list[Any]] = {}
 
-    def subscribe(self, event_type: Type[DomainEvent], handler: EventHandler) -> None:
+    def subscribe(self, event_type: type[E], handler: Callable[[E], None]) -> None:
         handlers = self._subscribers.get(event_type)
         if handlers is None:
             handlers = []

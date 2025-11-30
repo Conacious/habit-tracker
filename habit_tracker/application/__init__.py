@@ -1,17 +1,17 @@
+from .event_bus import EventBus
 from .repositories import (
-    HabitRepository,
     CompletionRepository,
+    HabitRepository,
     ReminderRepository,
     UserRepository,
 )
+from .security import create_access_token, decode_access_token
 from .services import (
+    AuthenticationService,
+    EmailAlreadyRegisteredError,
     HabitTrackerService,
     UserRegistrationService,
-    EmailAlreadyRegisteredError,
-    AuthenticationService,
 )
-from .security import create_access_token, decode_access_token
-from .event_bus import EventBus
 
 __all__ = [
     "HabitRepository",

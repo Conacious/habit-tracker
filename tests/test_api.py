@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+import os
 from uuid import UUID
 
 from fastapi.testclient import TestClient
-
 from habit_tracker.interfaces.api.app import create_app
-import os
 
 # Use inmemory database for tests, avoid using sqlite3 in API tests
 os.environ["DATABASE_MODE"] = "inmemory"
