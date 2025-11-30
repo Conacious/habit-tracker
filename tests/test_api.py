@@ -4,13 +4,15 @@ import os
 from uuid import UUID
 
 from fastapi.testclient import TestClient
+from habit_tracker.infrastructure.settings import get_settings
 from habit_tracker.interfaces.api.app import create_app
 
 # Use inmemory database for tests, avoid using sqlite3 in API tests
-os.environ["DATABASE_MODE"] = "inmemory"
+os.environ["HABIT_TRACKER_DATABASE_MODE"] = "inmemory"
 
 
 def _make_client() -> TestClient:
+    get_settings.cache_clear()
     app = create_app()
     return TestClient(app)
 

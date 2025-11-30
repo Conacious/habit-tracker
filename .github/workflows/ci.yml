@@ -26,6 +26,12 @@ jobs:
           pip install poetry
           poetry install --no-root
 
+      - name: Run ruff and mypy
+        run: |
+          set -e
+          poetry run ruff check
+          poetry run mypy
+
       - name: Run tests with coverage
         run: |
           poetry run pytest --cov=habit_tracker --cov-report=term-missing --cov-report=xml

@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
+from habit_tracker.infrastructure.settings import get_settings
 from habit_tracker.interfaces.api.app import create_app
 
 
 def _make_client() -> TestClient:
+    get_settings.cache_clear()
     app = create_app()
     return TestClient(app)
 
