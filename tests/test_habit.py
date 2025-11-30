@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 from habit_tracker.domain import Habit, HabitCreated, Schedule
 from .utils import FakeClock, test_schedule
+from uuid import UUID
 
 
 def test_create_habit_sets_basic_fields() -> None:
@@ -13,6 +14,7 @@ def test_create_habit_sets_basic_fields() -> None:
 
     habit, event = Habit.create(
         name=event_name,
+        user_id=UUID(int=1),
         schedule=test_schedule,
         clock=clock,
     )
@@ -36,7 +38,12 @@ def test_create_habit_rejects_empty_name() -> None:
     # Empty / whitespace-only names are not allowed
     for bad_name in ["", "   "]:
         try:
-            Habit.create(name=bad_name, schedule=test_schedule, clock=clock)
+            Habit.create(
+                name=bad_name,
+                user_id=UUID(int=1),
+                schedule=test_schedule,
+                clock=clock,
+            )
             assert False, "Expected ValueError for empty habit name"
         except ValueError:
             pass
@@ -49,7 +56,10 @@ def test_create_habit_rejects_invalid_schedule() -> None:
     for bad_schedule in ["invalid", "invalid2"]:
         try:
             Habit.create(
-                name="Drink water", schedule=Schedule(raw=bad_schedule), clock=clock
+                name="Drink water",
+                user_id=UUID(int=1),
+                schedule=Schedule(raw=bad_schedule),
+                clock=clock,
             )
             assert False, "Expected ValueError for invalid schedule"
         except ValueError:

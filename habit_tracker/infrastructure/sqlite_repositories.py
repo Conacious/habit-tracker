@@ -32,10 +32,12 @@ def _create_schema(conn: sqlite3.Connection) -> None:
         """
         CREATE TABLE IF NOT EXISTS habits (
             id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
             name TEXT NOT NULL,
             schedule TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            is_active INTEGER NOT NULL
+            is_active INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
         """
     )
@@ -101,9 +103,10 @@ class SQLiteHabitRepository(HabitRepository):
     def add(self, habit: Habit) -> None:
         self._conn.execute(
             """
-            INSERT INTO habits (id, name, schedule, created_at, is_active)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO habits (id, user_id, name, schedule, created_at, is_active)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
+                user_id=excluded.user_id,
                 name=excluded.name,
                 schedule=excluded.schedule,
                 created_at=excluded.created_at,
@@ -111,6 +114,7 @@ class SQLiteHabitRepository(HabitRepository):
             """,
             (
                 _uuid_to_str(habit.id),
+                _uuid_to_str(habit.user_id),
                 habit.name,
                 habit.schedule.raw,
                 _dt_to_str(habit.created_at),
@@ -121,31 +125,85 @@ class SQLiteHabitRepository(HabitRepository):
 
     def get(self, habit_id: UUID) -> Habit:
         cur = self._conn.execute(
-            "SELECT id, name, schedule, created_at, is_active FROM habits WHERE id = ?",
+            "SELECT id, user_id, name, schedule, created_at, is_active FROM habits WHERE id = ?",
             (_uuid_to_str(habit_id),),
         )
         row = cur.fetchone()
         if row is None:
             raise KeyError(f"Habit {habit_id} not found")
 
-        id_str, name, schedule_raw, created_at_str, is_active_int = row
+        id_str, user_id_str, name, schedule_raw, created_at_str, is_active_int = row
         return Habit(
             id=_uuid_from_str(id_str),
+            user_id=_uuid_from_str(user_id_str),
             name=name,
             schedule=Schedule(schedule_raw),
             created_at=_dt_from_str(created_at_str),
             is_active=bool(is_active_int),
         )
 
-    def list_all(self) -> List[Habit]:
+    def get_by_user_id(self, user_id: UUID) -> Habit | None:
         cur = self._conn.execute(
-            "SELECT id, name, schedule, created_at, is_active FROM habits"
+            "SELECT id, user_id, name, schedule, created_at, is_active FROM habits WHERE user_id = ?",
+            (_uuid_to_str(user_id),),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return None
+
+        id_str, user_id_str, name, schedule_raw, created_at_str, is_active_int = row
+        return Habit(
+            id=_uuid_from_str(id_str),
+            user_id=_uuid_from_str(user_id_str),
+            name=name,
+            schedule=Schedule(schedule_raw),
+            created_at=_dt_from_str(created_at_str),
+            is_active=bool(is_active_int),
+        )
+
+    def list_by_user_id(self, user_id: UUID) -> List[Habit]:
+        cur = self._conn.execute(
+            "SELECT id, user_id, name, schedule, created_at, is_active FROM habits WHERE user_id = ?",
+            (_uuid_to_str(user_id),),
         )
         habits: List[Habit] = []
-        for id_str, name, schedule_raw, created_at_str, is_active_int in cur.fetchall():
+        for (
+            id_str,
+            user_id_str,
+            name,
+            schedule_raw,
+            created_at_str,
+            is_active_int,
+        ) in cur.fetchall():
             habits.append(
                 Habit(
                     id=_uuid_from_str(id_str),
+                    user_id=_uuid_from_str(user_id_str),
+                    name=name,
+                    schedule=Schedule(schedule_raw),
+                    created_at=_dt_from_str(created_at_str),
+                    is_active=bool(is_active_int),
+                )
+            )
+        return habits
+
+    def list_all(self) -> List[Habit]:
+        cur = self._conn.execute(
+            "SELECT id, user_id, name, schedule, created_at, is_active FROM habits"
+        )
+        habits: List[Habit] = []
+        for (
+            id_str,
+            user_id_str,
+            name,
+            schedule_raw,
+            created_at_str,
+            is_active_int,
+        ) in cur.fetchall():
+            habits.append(
+                Habit(
+                    id=_uuid_from_str(id_str),
+                    user_id=_uuid_from_str(user_id_str),
                     name=name,
                     schedule=Schedule(schedule_raw),
                     created_at=_dt_from_str(created_at_str),

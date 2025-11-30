@@ -32,14 +32,14 @@ def test_stateful_subscriber() -> None:
     )
 
     habit1 = habit_tracker_service.create_habit(
-        name="habit1", schedule=Schedule(raw="daily")
+        name="habit1", schedule=Schedule(raw="daily"), user_id=UUID(int=1)
     )
     habit2 = habit_tracker_service.create_habit(
-        name="habit2", schedule=Schedule(raw="daily")
+        name="habit2", schedule=Schedule(raw="daily"), user_id=UUID(int=2)
     )
 
-    habit_tracker_service.complete_habit(habit_id=habit1.id)
-    habit_tracker_service.complete_habit(habit_id=habit2.id)
+    habit_tracker_service.complete_habit(habit_id=habit1.id, user_id=UUID(int=1))
+    habit_tracker_service.complete_habit(habit_id=habit2.id, user_id=UUID(int=2))
 
     assert completion_counter.get_count(habit_id=habit1.id) == 1
     assert completion_counter.get_count(habit_id=habit2.id) == 1

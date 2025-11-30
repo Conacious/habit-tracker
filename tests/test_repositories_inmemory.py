@@ -11,11 +11,13 @@ from habit_tracker.infrastructure.inmemory_repositories import (
 )
 
 from tests.utils import FakeClock
+from uuid import UUID
 
 
 def _create_habit(clock: FakeClock) -> Habit:
     result = Habit.create(
         name="Test habit",
+        user_id=UUID(int=1),
         schedule=Schedule("daily"),
         clock=clock,
     )

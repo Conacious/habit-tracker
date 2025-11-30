@@ -29,6 +29,15 @@ class InMemoryHabitRepository(HabitRepository):
         except KeyError as exc:
             raise KeyError(f"Habit {habit_id} not found") from exc
 
+    def get_by_user_id(self, user_id: UUID) -> Habit | None:
+        for habit in self._habits.values():
+            if habit.user_id == user_id:
+                return habit
+        return None
+
+    def list_by_user_id(self, user_id: UUID) -> List[Habit]:
+        return [habit for habit in self._habits.values() if habit.user_id == user_id]
+
     def list_all(self) -> List[Habit]:
         # Return a copy so callers cannot mutate internal state accidentally.
         return list(self._habits.values())
@@ -113,6 +122,12 @@ class InMemoryUserRepository(UserRepository):
 
     def add(self, user: User) -> None:
         self._users[user.id] = user
+
+    def get(self, user_id: UUID) -> User:
+        try:
+            return self._users[user_id]
+        except KeyError as exc:
+            raise KeyError(f"User {user_id} not found") from exc
 
     def get_by_email(self, email: str) -> User | None:
         for user in self._users.values():

@@ -65,7 +65,9 @@ def test_handler_not_called_different_event() -> None:
     bus.subscribe(HabitCompleted, handler)
 
     event = HabitCreated(
-        occurred_at=datetime(2025, 1, 1, 1, 0), habit_id=None, name="habit"
+        occurred_at=datetime(2025, 1, 1, 1, 0),
+        habit_id=None,
+        name="habit",
     )
 
     bus.publish(event)
