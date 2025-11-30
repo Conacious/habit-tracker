@@ -1,7 +1,7 @@
 import pytest
 from habit_tracker.domain.schedule import Schedule
-from habit_tracker.domain.streak_rules import DailyStreakRule, TimesPerWeekStreakRule
 from habit_tracker.domain.streak_factory import make_streak_rule
+from habit_tracker.domain.streak_rules import DailyStreakRule, TimesPerWeekStreakRule
 
 
 def test_make_streak_rule_daily():

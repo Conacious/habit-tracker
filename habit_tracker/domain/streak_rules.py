@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta, date
-from typing import Protocol, Sequence
+from datetime import date, datetime, timedelta
+from typing import Protocol
 
-from .habit import Habit
 from .completion import Completion
+from .habit import Habit
+from .helpers import _find_first_completion, _find_last_completion
 from .streak import Streak
-from .helpers import _find_last_completion, _find_first_completion
 
 
 class StreakRule(Protocol):

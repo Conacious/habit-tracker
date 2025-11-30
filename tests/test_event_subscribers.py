@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
+
+from habit_tracker.application.services import HabitTrackerService
+from habit_tracker.domain.events import HabitCompleted
+from habit_tracker.domain.schedule import Schedule
 from habit_tracker.infrastructure import (
     InMemoryCompletionRepository,
     InMemoryHabitRepository,
 )
-from habit_tracker.application.services import HabitTrackerService
-from habit_tracker.domain.schedule import Schedule
-from habit_tracker.domain.events import HabitCompleted
 from habit_tracker.infrastructure.event_bus import InMemoryEventBus
-from habit_tracker.application.event_bus import EventBus
-from habit_tracker.domain.events import DomainEvent
+
 from .utils import CompletionCounter, FakeClock
-from datetime import datetime
 
 
 def test_stateful_subscriber() -> None:

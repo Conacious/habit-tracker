@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from .clock import Clock
-from .habit import Habit
 from .events import HabitCompleted
+from .habit import Habit
 
 
 @dataclass(frozen=True)
@@ -23,8 +22,8 @@ class Completion:
         cls,
         habit: Habit,
         clock: Clock,
-        completion_id: Optional[UUID] = None,
-    ) -> tuple["Completion", HabitCompleted]:
+        completion_id: UUID | None = None,
+    ) -> tuple[Completion, HabitCompleted]:
         """Record a new completion for the given habit.
 
         Returns both the Completion entity and the corresponding domain event.

@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 from uuid import UUID
 
-from habit_tracker.domain.habit import Habit
-from habit_tracker.domain.completion import Completion
 from habit_tracker.application.repositories import (
-    HabitRepository,
     CompletionRepository,
+    HabitRepository,
     ReminderRepository,
     UserRepository,
 )
+from habit_tracker.domain.completion import Completion
+from habit_tracker.domain.habit import Habit
+from habit_tracker.domain.reminder import Reminder
+from habit_tracker.domain.user import User
 
 
 class InMemoryHabitRepository(HabitRepository):
@@ -35,10 +36,10 @@ class InMemoryHabitRepository(HabitRepository):
                 return habit
         return None
 
-    def list_by_user_id(self, user_id: UUID) -> List[Habit]:
+    def list_by_user_id(self, user_id: UUID) -> list[Habit]:
         return [habit for habit in self._habits.values() if habit.user_id == user_id]
 
-    def list_all(self) -> List[Habit]:
+    def list_all(self) -> list[Habit]:
         # Return a copy so callers cannot mutate internal state accidentally.
         return list(self._habits.values())
 
@@ -51,13 +52,13 @@ class InMemoryCompletionRepository(CompletionRepository):
     """Simple in-memory completion store using a list."""
 
     def __init__(self) -> None:
-        self._completions: List[Completion] = []
+        self._completions: list[Completion] = []
 
     def add(self, completion: Completion) -> None:
         self._completions.append(completion)
 
-    def list_for_habit(self, habit_id: UUID) -> List[Completion]:
-        result: List[Completion] = []
+    def list_for_habit(self, habit_id: UUID) -> list[Completion]:
+        result: list[Completion] = []
         for c in self._completions:
             if c.habit_id == habit_id:
                 result.append(c)
@@ -68,22 +69,14 @@ class InMemoryCompletionRepository(CompletionRepository):
         habit_id: UUID,
         start: datetime,
         end: datetime,
-    ) -> List[Completion]:
-        result: List[Completion] = []
+    ) -> list[Completion]:
+        result: list[Completion] = []
         for c in self._completions:
             if c.habit_id != habit_id:
                 continue
             if start <= c.completed_at <= end:
                 result.append(c)
         return result
-
-
-from habit_tracker.domain.reminder import Reminder
-from habit_tracker.application.repositories import (
-    HabitRepository,
-    CompletionRepository,
-    ReminderRepository,  # NEW
-)
 
 
 class InMemoryReminderRepository(ReminderRepository):
@@ -101,11 +94,11 @@ class InMemoryReminderRepository(ReminderRepository):
     def get_by_habit_id(self, habit_id: UUID) -> Reminder | None:
         return self._by_habit_id.get(habit_id)
 
-    def list_due(self, before: datetime) -> List[Reminder]:
+    def list_due(self, before: datetime) -> list[Reminder]:
         if before.tzinfo is None:
-            before = before.replace(tzinfo=timezone.utc)
+            before = before.replace(tzinfo=UTC)
 
-        due: List[Reminder] = []
+        due: list[Reminder] = []
         for r in self._by_habit_id.values():
             if not r.active:
                 continue
@@ -135,7 +128,7 @@ class InMemoryUserRepository(UserRepository):
                 return user
         return None
 
-    def list_all(self) -> List[User]:
+    def list_all(self) -> list[User]:
         return list(self._users.values())
 
     def remove(self, user_id: UUID) -> None:

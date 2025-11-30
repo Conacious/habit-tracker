@@ -1,52 +1,47 @@
 from __future__ import annotations
 
+import os
+import sqlite3
+from datetime import datetime
+from uuid import UUID
+
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi.security import OAuth2PasswordBearer
+from habit_tracker.application import (
+    CompletionRepository,
+    HabitRepository,
+    ReminderRepository,
+    UserRepository,
+)
+from habit_tracker.application.reminder_handlers import ReminderEventHandler
+from habit_tracker.application.security import (
+    create_access_token,
+    decode_access_token,
+)
+from habit_tracker.application.services import (
+    AuthenticationService,
+    EmailAlreadyRegisteredError,
+    HabitTrackerService,
+    UserRegistrationService,
+)
+from habit_tracker.domain.events import HabitCompleted, HabitCreated
+from habit_tracker.domain.schedule import Schedule
+from habit_tracker.domain.user import User
+from habit_tracker.infrastructure.clock import SystemClock
+from habit_tracker.infrastructure.event_bus import InMemoryEventBus
+from habit_tracker.infrastructure.inmemory_repositories import (
+    InMemoryCompletionRepository,
+    InMemoryHabitRepository,
+    InMemoryReminderRepository,
+    InMemoryUserRepository,
+)
 from habit_tracker.infrastructure.sqlite_repositories import (
     SQLiteCompletionRepository,
     SQLiteHabitRepository,
     SQLiteReminderRepository,
     SQLiteUserRepository,
 )
-
-from fastapi.security import OAuth2PasswordBearer
-from habit_tracker.application.security import (
-    decode_access_token,
-    create_access_token,
-)
-
-from dataclasses import asdict
-from datetime import datetime
-from typing import List
-from uuid import UUID
-
-from fastapi import FastAPI, HTTPException, Depends, Request, Query, status
 from pydantic import BaseModel
-
-from habit_tracker.application.services import (
-    HabitTrackerService,
-    UserRegistrationService,
-    EmailAlreadyRegisteredError,
-    AuthenticationService,
-)
-from habit_tracker.domain.schedule import Schedule
-from habit_tracker.domain.streak import Streak
-from habit_tracker.infrastructure.inmemory_repositories import (
-    InMemoryHabitRepository,
-    InMemoryCompletionRepository,
-    InMemoryReminderRepository,
-    InMemoryUserRepository,
-)
-from habit_tracker.application import (
-    HabitRepository,
-    CompletionRepository,
-    ReminderRepository,
-    UserRepository,
-)
-from habit_tracker.infrastructure.clock import SystemClock
-from habit_tracker.infrastructure.event_bus import InMemoryEventBus
-from habit_tracker.application.reminder_handlers import ReminderEventHandler
-from habit_tracker.domain.events import HabitCreated, HabitCompleted
-import os
-import sqlite3
 
 # OAuth2 scheme for authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -169,7 +164,7 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-        )
+        ) from None
 
     sub = payload.get("sub")
     if sub is None:
@@ -184,7 +179,7 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token subject",
-        )
+        ) from None
 
     try:
         user = user_repo.get(user_id)
@@ -192,7 +187,7 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
-        )
+        ) from None
 
     if not user.is_active:
         raise HTTPException(
@@ -240,7 +235,9 @@ def _build_repositories() -> (
 
 
 def create_app() -> FastAPI:
-    """Create a FastAPI app wired with in-memory/sqlite (based on DATABASE_MODE env var) repositories and SystemClock."""
+    """
+    Create a FastAPI app wired with in-memory/sqlite (based on DATABASE_MODE env var) repositories and SystemClock.
+    """
     habit_repo, completion_repo, reminder_repo, user_repo = _build_repositories()
     clock = SystemClock()
     event_bus = InMemoryEventBus()
@@ -297,11 +294,11 @@ def create_app() -> FastAPI:
             is_active=habit.is_active,
         )
 
-    @app.get("/habits", response_model=List[HabitRead])
+    @app.get("/habits", response_model=list[HabitRead])
     def list_habits(
         service: HabitTrackerService = Depends(get_service),
         current_user: User = Depends(get_current_user),
-    ) -> List[HabitRead]:
+    ) -> list[HabitRead]:
         habits = service.list_habits_for_user(current_user.id)
         return [
             HabitRead(
@@ -322,10 +319,10 @@ def create_app() -> FastAPI:
         try:
             completion = service.complete_habit(habit_id, user_id=current_user.id)
         except KeyError:
-            raise HTTPException(status_code=404, detail="Habit not found")
+            raise HTTPException(status_code=404, detail="Habit not found") from None
         except PermissionError:
             # Return 404 instead of 403 to avoid leaking habit existence
-            raise HTTPException(status_code=404, detail="Habit not found")
+            raise HTTPException(status_code=404, detail="Habit not found") from None
         return CompletionRead(
             id=completion.id,
             habit_id=completion.habit_id,
@@ -343,10 +340,10 @@ def create_app() -> FastAPI:
                 habit_id=habit_id, user_id=current_user.id
             )
         except KeyError:
-            raise HTTPException(status_code=404, detail="Habit not found")
+            raise HTTPException(status_code=404, detail="Habit not found") from None
         except PermissionError:
             # Return 404 instead of 403 to avoid leaking habit existence
-            raise HTTPException(status_code=404, detail="Habit not found")
+            raise HTTPException(status_code=404, detail="Habit not found") from None
 
         return StreakRead(
             habit_id=streak.habit_id,
@@ -369,18 +366,22 @@ def create_app() -> FastAPI:
             active=reminder.active,
         )
 
-    @app.get("/reminders/due", response_model=List[ReminderRead])
+    @app.get("/reminders/due", response_model=list[ReminderRead])
     def list_due_reminders(
         before: datetime | None = Query(
             default=None,
             description="Return reminders with next_due_at <= this time (defaults to now).",
         ),
         service: HabitTrackerService = Depends(get_service),
-    ) -> List[ReminderRead]:
+    ) -> list[ReminderRead]:
         if before is None:
             before = datetime.utcnow()
 
         reminders = service.list_due_reminders(before)
+
+        if not reminders:
+            return []
+
         return [
             ReminderRead(
                 id=r.id,
@@ -406,7 +407,7 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered",
-            )
+            ) from None
 
         return UserRead(
             id=user.id,
@@ -415,10 +416,10 @@ def create_app() -> FastAPI:
             is_active=user.is_active,
         )
 
-    @app.get("/users", response_model=List[UserRead])
+    @app.get("/users", response_model=list[UserRead])
     def list_users(
         service: UserRegistrationService = Depends(get_user_registration_service),
-    ) -> List[UserRead]:
+    ) -> list[UserRead]:
         users = service.list_users()
         return [
             UserRead(

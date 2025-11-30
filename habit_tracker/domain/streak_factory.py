@@ -1,7 +1,7 @@
 from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.streak_rules import (
-    StreakRule,
     DailyStreakRule,
+    StreakRule,
     TimesPerWeekStreakRule,
 )
 

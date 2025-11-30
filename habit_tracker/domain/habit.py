@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
-from .events import HabitCreated
+
 from .clock import Clock
+from .events import HabitCreated
 from .schedule import Schedule
 
 
@@ -25,7 +25,7 @@ class Habit:
         user_id: UUID,
         schedule: Schedule,
         clock: Clock,
-        habit_id: Optional[UUID] = None,
+        habit_id: UUID | None = None,
     ) -> tuple[Habit, HabitCreated]:
         """Factory method to create a new Habit using an injected clock."""
         habit_name = name.strip()

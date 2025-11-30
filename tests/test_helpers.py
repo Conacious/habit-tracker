@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from habit_tracker.domain import _find_last_completion, _find_first_completion
-from habit_tracker.domain.completion import Completion
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 
+from habit_tracker.domain import _find_first_completion, _find_last_completion
+from habit_tracker.domain.completion import Completion
 
 completions = [
     Completion(id=UUID(int=1), habit_id=UUID(int=1), completed_at=datetime(2023, 1, 1)),

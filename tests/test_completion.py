@@ -3,9 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from habit_tracker.domain.habit import Habit
-from habit_tracker.domain.completion import Completion
 from habit_tracker.domain.events import HabitCompleted
+
 from .utils import FakeClock, make_habit_and_completion, test_schedule
 
 

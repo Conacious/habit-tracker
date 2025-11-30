@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from uuid import UUID
 from datetime import datetime
-from habit_tracker.domain import Habit, Completion, Schedule, HabitCompleted
 from uuid import UUID
+
+from habit_tracker.domain import Completion, Habit, HabitCompleted, Schedule
 
 test_schedule = Schedule(raw="daily")
 

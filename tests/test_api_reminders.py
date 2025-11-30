@@ -3,7 +3,6 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi.testclient import TestClient
-
 from habit_tracker.interfaces.api.app import create_app
 
 

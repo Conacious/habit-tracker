@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from uuid import UUID
+
+import pytest
 from habit_tracker.domain import Habit, HabitCreated, Schedule
+
 from .utils import FakeClock, test_schedule
-from uuid import UUID
 
 
 def test_create_habit_sets_basic_fields() -> None:
@@ -37,16 +39,13 @@ def test_create_habit_rejects_empty_name() -> None:
 
     # Empty / whitespace-only names are not allowed
     for bad_name in ["", "   "]:
-        try:
+        with pytest.raises(ValueError):
             Habit.create(
                 name=bad_name,
                 user_id=UUID(int=1),
                 schedule=test_schedule,
                 clock=clock,
             )
-            assert False, "Expected ValueError for empty habit name"
-        except ValueError:
-            pass
 
 
 def test_create_habit_rejects_invalid_schedule() -> None:
@@ -54,13 +53,10 @@ def test_create_habit_rejects_invalid_schedule() -> None:
     clock = FakeClock(fixed_time)
 
     for bad_schedule in ["invalid", "invalid2"]:
-        try:
+        with pytest.raises(ValueError):
             Habit.create(
                 name="Drink water",
                 user_id=UUID(int=1),
                 schedule=Schedule(raw=bad_schedule),
                 clock=clock,
             )
-            assert False, "Expected ValueError for invalid schedule"
-        except ValueError:
-            pass

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Protocol, Callable, Dict, List, Type
+from collections.abc import Callable
+from typing import Protocol, TypeVar
+
 from habit_tracker.domain.events import DomainEvent
 
+E = TypeVar("E", bound=DomainEvent)
 
 # A handler is just "a function that takes an event and returns None"
 EventHandler = Callable[[DomainEvent], None]
@@ -15,6 +18,6 @@ class EventBus(Protocol):
         """Publish a single event to all subscribers interested in its type."""
         ...
 
-    def subscribe(self, event_type: Type[DomainEvent], handler: EventHandler) -> None:
+    def subscribe(self, event_type: type[E], handler: Callable[[E], None]) -> None:
         """Subscribe a handler to a specific event type."""
         ...

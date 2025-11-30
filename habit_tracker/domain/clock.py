@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Protocol
 
 
-class Clock:
+class Clock(Protocol):
     """Clock abstraction to make domain logic testable."""
 
     def now(self) -> datetime:

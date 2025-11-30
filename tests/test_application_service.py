@@ -3,13 +3,14 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
+from habit_tracker.application.services import HabitTrackerService
 from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.streak_rules import DailyStreakRule
-from habit_tracker.application.services import HabitTrackerService
 from habit_tracker.infrastructure.inmemory_repositories import (
-    InMemoryHabitRepository,
     InMemoryCompletionRepository,
+    InMemoryHabitRepository,
 )
+
 from tests.utils import FakeClock
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 
@@ -16,7 +15,7 @@ class Streak:
 
     habit_id: UUID
     count: int
-    last_completed_at: Optional[datetime]
+    last_completed_at: datetime | None
 
     def is_at_least(self, minimum: int) -> bool:
         if minimum <= 0:

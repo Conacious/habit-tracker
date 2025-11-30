@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from habit_tracker.domain import Schedule
 
 
@@ -40,8 +41,5 @@ def test_invalid_schedule_is_rejected() -> None:
         "myownschedule",
     ]
     for schedule in invalid_schedules:
-        try:
+        with pytest.raises(ValueError):
             Schedule(raw=schedule)
-            assert False, "Expected ValueError for invalid schedule"
-        except ValueError:
-            pass

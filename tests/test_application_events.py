@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from uuid import UUID
 
-from habit_tracker.domain.schedule import Schedule
-from habit_tracker.domain.events import HabitCreated, HabitCompleted, DomainEvent
 from habit_tracker.application.services import HabitTrackerService
+from habit_tracker.domain.events import DomainEvent, HabitCompleted, HabitCreated
+from habit_tracker.domain.schedule import Schedule
 from habit_tracker.infrastructure import (
-    InMemoryHabitRepository,
     InMemoryCompletionRepository,
     InMemoryEventBus,
+    InMemoryHabitRepository,
 )
+
 from tests.utils import FakeClock
-from uuid import UUID
 
 
 def _make_service_with_bus(
@@ -37,7 +37,7 @@ def test_create_habit_publishes_habit_created_event() -> None:
     start_time = datetime(2025, 1, 1, 9, 0, 0)
     service, bus = _make_service_with_bus(start_time)
 
-    received: List[DomainEvent] = []
+    received: list[DomainEvent] = []
 
     def handler(event: DomainEvent) -> None:
         received.append(event)
@@ -59,7 +59,7 @@ def test_complete_habit_publishes_habit_completed_event() -> None:
     service, bus = _make_service_with_bus(start_time)
 
     # subscribe before any events
-    received: List[DomainEvent] = []
+    received: list[DomainEvent] = []
 
     def handler(event: DomainEvent) -> None:
         received.append(event)

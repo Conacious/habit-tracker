@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID, uuid4
 from datetime import datetime
+from uuid import UUID, uuid4
+
 from habit_tracker.domain.clock import Clock
 
 

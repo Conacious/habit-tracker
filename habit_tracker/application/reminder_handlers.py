@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from habit_tracker.domain.clock import Clock
-from habit_tracker.domain.reminder import Reminder
-from habit_tracker.domain.events import HabitCreated, HabitCompleted
 from habit_tracker.application.repositories import HabitRepository, ReminderRepository
+from habit_tracker.domain.clock import Clock
+from habit_tracker.domain.events import HabitCompleted, HabitCreated
+from habit_tracker.domain.reminder import Reminder
 
 
 @dataclass

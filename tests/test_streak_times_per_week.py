@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from uuid import UUID
-from habit_tracker.domain.habit import Habit
+
 from habit_tracker.domain.completion import Completion
+from habit_tracker.domain.habit import Habit
 from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.streak_rules import TimesPerWeekStreakRule
 
 from tests.utils import FakeClock
-from uuid import UUID
 
 
 def _create_habit(clock: FakeClock, times_per_week: int = 3) -> Habit:

@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import asdict
 from datetime import datetime
-from typing import List
 from uuid import UUID
 
-from habit_tracker.domain.habit import Habit
-from habit_tracker.domain.completion import Completion
-from habit_tracker.domain.reminder import Reminder
-from habit_tracker.domain.schedule import Schedule
-from habit_tracker.domain.user import User
 from habit_tracker.application.repositories import (
-    HabitRepository,
     CompletionRepository,
+    HabitRepository,
     ReminderRepository,
     UserRepository,
 )
+from habit_tracker.domain.completion import Completion
+from habit_tracker.domain.habit import Habit
+from habit_tracker.domain.reminder import Reminder
+from habit_tracker.domain.schedule import Schedule
+from habit_tracker.domain.user import User
 
 
 def _ensure_foreign_keys(conn: sqlite3.Connection) -> None:
@@ -161,12 +159,12 @@ class SQLiteHabitRepository(HabitRepository):
             is_active=bool(is_active_int),
         )
 
-    def list_by_user_id(self, user_id: UUID) -> List[Habit]:
+    def list_by_user_id(self, user_id: UUID) -> list[Habit]:
         cur = self._conn.execute(
             "SELECT id, user_id, name, schedule, created_at, is_active FROM habits WHERE user_id = ?",
             (_uuid_to_str(user_id),),
         )
-        habits: List[Habit] = []
+        habits: list[Habit] = []
         for (
             id_str,
             user_id_str,
@@ -187,11 +185,11 @@ class SQLiteHabitRepository(HabitRepository):
             )
         return habits
 
-    def list_all(self) -> List[Habit]:
+    def list_all(self) -> list[Habit]:
         cur = self._conn.execute(
             "SELECT id, user_id, name, schedule, created_at, is_active FROM habits"
         )
-        habits: List[Habit] = []
+        habits: list[Habit] = []
         for (
             id_str,
             user_id_str,
@@ -242,7 +240,7 @@ class SQLiteCompletionRepository(CompletionRepository):
         )
         self._conn.commit()
 
-    def list_for_habit(self, habit_id: UUID) -> List[Completion]:
+    def list_for_habit(self, habit_id: UUID) -> list[Completion]:
         cur = self._conn.execute(
             """
             SELECT id, habit_id, completed_at
@@ -252,7 +250,7 @@ class SQLiteCompletionRepository(CompletionRepository):
             """,
             (_uuid_to_str(habit_id),),
         )
-        completions: List[Completion] = []
+        completions: list[Completion] = []
         for id_str, habit_id_str, completed_at_str in cur.fetchall():
             completions.append(
                 Completion(
@@ -268,7 +266,7 @@ class SQLiteCompletionRepository(CompletionRepository):
         habit_id: UUID,
         start: datetime,
         end: datetime,
-    ) -> List[Completion]:
+    ) -> list[Completion]:
         cur = self._conn.execute(
             """
             SELECT id, habit_id, completed_at
@@ -283,7 +281,7 @@ class SQLiteCompletionRepository(CompletionRepository):
                 _dt_to_str(end),
             ),
         )
-        completions: List[Completion] = []
+        completions: list[Completion] = []
         for id_str, habit_id_str, completed_at_str in cur.fetchall():
             completions.append(
                 Completion(
@@ -340,7 +338,7 @@ class SQLiteReminderRepository(ReminderRepository):
             active=bool(active_int),
         )
 
-    def list_due(self, before: datetime) -> List[Reminder]:
+    def list_due(self, before: datetime) -> list[Reminder]:
         cur = self._conn.execute(
             """
             SELECT id, habit_id, next_due_at, active
@@ -349,7 +347,7 @@ class SQLiteReminderRepository(ReminderRepository):
             """,
             (_dt_to_str(before),),
         )
-        reminders: List[Reminder] = []
+        reminders: list[Reminder] = []
         for id_str, habit_id_str, next_due_at_str, active_int in cur.fetchall():
             reminders.append(
                 Reminder(
@@ -424,11 +422,11 @@ class SQLiteUserRepository(UserRepository):
             is_active=bool(is_active_int),
         )
 
-    def list_all(self) -> List[User]:
+    def list_all(self) -> list[User]:
         cur = self._conn.execute(
             "SELECT id, email, hashed_password, created_at, is_active FROM users"
         )
-        users: List[User] = []
+        users: list[User] = []
         for (
             id_str,
             email,

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol, List
+from typing import Protocol
 from uuid import UUID
 
-from habit_tracker.domain import Habit, Completion, Reminder, User
+from habit_tracker.domain import Completion, Habit, Reminder, User
 
 
 class HabitRepository(Protocol):
@@ -22,11 +22,11 @@ class HabitRepository(Protocol):
         """Return the habit with the given user ID, or None if not found."""
         ...
 
-    def list_by_user_id(self, user_id: UUID) -> List[Habit]:
+    def list_by_user_id(self, user_id: UUID) -> list[Habit]:
         """Return all habits for the given user."""
         ...
 
-    def list_all(self) -> List[Habit]:
+    def list_all(self) -> list[Habit]:
         """Return all habits."""
         ...
 
@@ -42,7 +42,7 @@ class CompletionRepository(Protocol):
         """Store a new completion."""
         ...
 
-    def list_for_habit(self, habit_id: UUID) -> List[Completion]:
+    def list_for_habit(self, habit_id: UUID) -> list[Completion]:
         """Return all completions for the given habit."""
         ...
 
@@ -51,7 +51,7 @@ class CompletionRepository(Protocol):
         habit_id: UUID,
         start: datetime,
         end: datetime,
-    ) -> List[Completion]:
+    ) -> list[Completion]:
         """Return completions for a habit between start and end, inclusive."""
         ...
 
@@ -67,7 +67,7 @@ class ReminderRepository(Protocol):
         """Return the reminder for this habit, or None if not found."""
         ...
 
-    def list_due(self, before: datetime) -> List[Reminder]:
+    def list_due(self, before: datetime) -> list[Reminder]:
         """Return all reminders with next_due_at <= 'before' and active=True."""
         ...
 
@@ -87,7 +87,7 @@ class UserRepository(Protocol):
         """Return the user with the given email, or None if not found."""
         ...
 
-    def list_all(self) -> List[User]:
+    def list_all(self) -> list[User]:
         """Return all users."""
         ...
 
