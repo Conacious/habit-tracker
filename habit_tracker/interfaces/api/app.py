@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
@@ -35,6 +34,7 @@ from habit_tracker.infrastructure.inmemory_repositories import (
     InMemoryReminderRepository,
     InMemoryUserRepository,
 )
+from habit_tracker.infrastructure.settings import Settings, get_settings
 from habit_tracker.infrastructure.sqlite_repositories import (
     SQLiteCompletionRepository,
     SQLiteHabitRepository,
@@ -151,15 +151,18 @@ def get_user_repo(request: Request) -> UserRepository:
 
 
 def _get_database_mode() -> str:
-    return os.getenv("DATABASE_MODE", "sqlite")  # Availble options: inmemory, sqlite
+    return get_settings().database_mode
 
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     user_repo: UserRepository = Depends(get_user_repo),
+    settings: Settings = Depends(get_settings),
 ) -> User:
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(
+            token, secret_key=settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+        )
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -217,7 +220,7 @@ def _build_repositories() -> (
         )
 
     if database_mode == "sqlite":
-        db_path = os.getenv("HABIT_DB_PATH", "habit_tracker.db")
+        db_path = get_settings().database_path
         conn = sqlite3.connect(db_path, check_same_thread=False)
         return (
             SQLiteHabitRepository(conn),
@@ -437,6 +440,7 @@ def create_app() -> FastAPI:
     def login(
         payload: LoginRequest,
         auth_service: AuthenticationService = Depends(get_user_authentication_service),
+        settings: Settings = Depends(get_settings),
     ) -> TokenResponse:
         user = auth_service.authenticate(email=payload.email, password=payload.password)
         if user is None:
@@ -446,7 +450,13 @@ def create_app() -> FastAPI:
             )
 
         # Use subject claim "sub" to store user id (string)
-        token = create_access_token({"sub": str(user.id)})
+        expires = timedelta(minutes=settings.jwt_access_token_expire_minutes)
+        token = create_access_token(
+            {"sub": str(user.id)},
+            secret_key=settings.jwt_secret_key,
+            algorithm=settings.jwt_algorithm,
+            expires_delta=expires,
+        )
 
         return TokenResponse(access_token=token)
 

@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import os
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-
-SECRET_KEY = os.getenv("HABIT_SECRET_KEY", "dev-secret-change-me")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 _pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -26,24 +21,31 @@ def verify_password(password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    data: dict[str, Any], expires_delta: timedelta | None = None
+    data: dict[str, Any],
+    secret_key: str,
+    algorithm: str,
+    expires_delta: timedelta | None = None,
 ) -> str:
     to_encode = data.copy()
     now = datetime.now(UTC)
 
     if expires_delta is None:
-        expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        # If no delta provided, we assume the caller handles the default or we could pass it in.
+        # However, to keep it simple, let's require the caller to pass the delta if they want a specific one,
+        # or we can default to 15 mins if not provided, but the caller (app.py) has the settings.
+        # Let's say if None, we use 15 minutes as a safe fallback, but ideally app.py passes it.
+        expires_delta = timedelta(minutes=15)
 
     expire = now + expires_delta
     to_encode.update({"exp": expire, "iat": now})
 
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> dict[str, Any]:
+def decode_access_token(token: str, secret_key: str, algorithm: str) -> dict[str, Any]:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
     except JWTError as exc:
         raise ValueError("Invalid token") from exc
     return payload
