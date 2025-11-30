@@ -12,13 +12,32 @@ def _make_client() -> TestClient:
     return TestClient(app)
 
 
+def _get_auth_token(
+    client: TestClient, email: str = "test@example.com", password: str = "password"
+) -> str:
+    """Register and login a user, return the access token."""
+    # Register
+    client.post(
+        "/auth/register",
+        json={"email": email, "password": password},
+    )
+    # Login
+    resp = client.post(
+        "/auth/login",
+        json={"email": email, "password": password},
+    )
+    return resp.json()["access_token"]
+
+
 def test_get_habit_reminder() -> None:
     client = _make_client()
+    token = _get_auth_token(client)
 
     # Create a daily habit
     resp = client.post(
         "/habits",
         json={"name": "Drink water", "schedule": "daily"},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 201
     habit = resp.json()
@@ -36,12 +55,14 @@ def test_get_habit_reminder() -> None:
 
 def test_list_due_reminders() -> None:
     client = _make_client()
+    token = _get_auth_token(client)
 
     # Create two habits
     for name in ["Read", "Exercise"]:
         resp = client.post(
             "/habits",
             json={"name": name, "schedule": "daily"},
+            headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 201
 

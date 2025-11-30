@@ -16,13 +16,32 @@ def _make_client() -> TestClient:
     return TestClient(app)
 
 
+def _get_auth_token(
+    client: TestClient, email: str = "test@example.com", password: str = "password"
+) -> str:
+    """Register and login a user, return the access token."""
+    # Register
+    client.post(
+        "/auth/register",
+        json={"email": email, "password": password},
+    )
+    # Login
+    resp = client.post(
+        "/auth/login",
+        json={"email": email, "password": password},
+    )
+    return resp.json()["access_token"]
+
+
 def test_create_and_list_habits_via_api() -> None:
     client = _make_client()
+    token = _get_auth_token(client)
 
     # Create habit
     resp = client.post(
         "/habits",
         json={"name": "Read", "schedule": "daily"},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 201
     data = resp.json()
@@ -31,7 +50,7 @@ def test_create_and_list_habits_via_api() -> None:
     assert data["schedule"] == "daily"
 
     # List habits
-    resp_list = client.get("/habits")
+    resp_list = client.get("/habits", headers={"Authorization": f"Bearer {token}"})
     assert resp_list.status_code == 200
     habits = resp_list.json()
     assert len(habits) == 1
@@ -40,23 +59,29 @@ def test_create_and_list_habits_via_api() -> None:
 
 def test_complete_and_get_streak_via_api() -> None:
     client = _make_client()
+    token = _get_auth_token(client)
 
     # Create habit
     resp = client.post(
         "/habits",
         json={"name": "Exercise", "schedule": "daily"},
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 201
     habit_id = resp.json()["id"]
 
     # Complete habit
-    resp_complete = client.post(f"/habits/{habit_id}/complete")
+    resp_complete = client.post(
+        f"/habits/{habit_id}/complete", headers={"Authorization": f"Bearer {token}"}
+    )
     assert resp_complete.status_code == 200
     completion = resp_complete.json()
     assert completion["habit_id"] == habit_id
 
     # Get streak
-    resp_streak = client.get(f"/habits/{habit_id}/streak")
+    resp_streak = client.get(
+        f"/habits/{habit_id}/streak", headers={"Authorization": f"Bearer {token}"}
+    )
     assert resp_streak.status_code == 200
     streak = resp_streak.json()
     assert streak["habit_id"] == habit_id

@@ -12,6 +12,7 @@ from habit_tracker.infrastructure import (
     InMemoryEventBus,
 )
 from tests.utils import FakeClock
+from uuid import UUID
 
 
 def _make_service_with_bus(
@@ -43,7 +44,9 @@ def test_create_habit_publishes_habit_created_event() -> None:
 
     bus.subscribe(HabitCreated, handler)
 
-    habit = service.create_habit(name="Read", schedule=Schedule("daily"))
+    habit = service.create_habit(
+        name="Read", schedule=Schedule("daily"), user_id=UUID(int=1)
+    )
 
     assert len(received) == 1
     event = received[0]
@@ -63,8 +66,10 @@ def test_complete_habit_publishes_habit_completed_event() -> None:
 
     bus.subscribe(HabitCompleted, handler)
 
-    habit = service.create_habit(name="Exercise", schedule=Schedule("daily"))
-    service.complete_habit(habit.id)
+    habit = service.create_habit(
+        name="Exercise", schedule=Schedule("daily"), user_id=UUID(int=1)
+    )
+    service.complete_habit(habit.id, user_id=UUID(int=1))
 
     assert len(received) == 1
     event = received[0]

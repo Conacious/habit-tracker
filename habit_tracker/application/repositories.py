@@ -18,6 +18,14 @@ class HabitRepository(Protocol):
         """Return the habit with the given ID, or raise an error if not found."""
         ...
 
+    def get_by_user_id(self, user_id: UUID) -> Habit | None:
+        """Return the habit with the given user ID, or None if not found."""
+        ...
+
+    def list_by_user_id(self, user_id: UUID) -> List[Habit]:
+        """Return all habits for the given user."""
+        ...
+
     def list_all(self) -> List[Habit]:
         """Return all habits."""
         ...

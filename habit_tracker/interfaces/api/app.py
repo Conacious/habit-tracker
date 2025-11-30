@@ -7,6 +7,12 @@ from habit_tracker.infrastructure.sqlite_repositories import (
     SQLiteUserRepository,
 )
 
+from fastapi.security import OAuth2PasswordBearer
+from habit_tracker.application.security import (
+    decode_access_token,
+    create_access_token,
+)
+
 from dataclasses import asdict
 from datetime import datetime
 from typing import List
@@ -19,6 +25,7 @@ from habit_tracker.application.services import (
     HabitTrackerService,
     UserRegistrationService,
     EmailAlreadyRegisteredError,
+    AuthenticationService,
 )
 from habit_tracker.domain.schedule import Schedule
 from habit_tracker.domain.streak import Streak
@@ -41,6 +48,8 @@ from habit_tracker.domain.events import HabitCreated, HabitCompleted
 import os
 import sqlite3
 
+# OAuth2 scheme for authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # --------------------------
 # Pydantic DTOs
@@ -90,6 +99,16 @@ class UserRead(BaseModel):
     is_active: bool
 
 
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
 # --------------------------
 # Dependency injection
 # --------------------------
@@ -102,13 +121,33 @@ def get_service(request: Request) -> HabitTrackerService:
     return service
 
 
-def get_user_service(request: Request) -> UserRegistrationService:
-    service = getattr(request.app.state, "user_service", None)
+def get_user_registration_service(request: Request) -> UserRegistrationService:
+    service = getattr(request.app.state, "user_registration_service", None)
     if service is None:
         raise RuntimeError(
-            "UserRegistrationService not configured on app.state.user_service"
+            "UserRegistrationService not configured on app.state.user_registration_service"
         )
     return service
+
+
+def get_user_authentication_service(request: Request) -> AuthenticationService:
+    service = getattr(request.app.state, "user_authentication_service", None)
+    if service is None:
+        raise RuntimeError(
+            "UserAuthenticationService not configured on app.state.user_authentication_service"
+        )
+    return service
+
+
+def get_user_repo(request: Request) -> UserRepository:
+    # we already have user_repo inside services; you can either:
+    # - store user_repo on app.state (like we did before), OR
+    # - grab it from user_registration_service/auth_service
+    # Easiest: store user_repo on app.state when you build it
+    repo = getattr(request.app.state, "user_repo", None)
+    if repo is None:
+        raise RuntimeError("UserRepository not configured")
+    return repo
 
 
 # --------------------------
@@ -118,6 +157,50 @@ def get_user_service(request: Request) -> UserRegistrationService:
 
 def _get_database_mode() -> str:
     return os.getenv("DATABASE_MODE", "sqlite")  # Availble options: inmemory, sqlite
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> User:
+    try:
+        payload = decode_access_token(token)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    sub = payload.get("sub")
+    if sub is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    try:
+        user_id = UUID(sub)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token subject",
+        )
+
+    try:
+        user = user_repo.get(user_id)
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+
+    return user
 
 
 # --------------------------
@@ -170,9 +253,13 @@ def create_app() -> FastAPI:
         event_bus=event_bus,
     )
 
-    user_service = UserRegistrationService(
+    user_registration_service = UserRegistrationService(
         user_repo=user_repo,
         clock=clock,
+    )
+
+    user_authentication_service = AuthenticationService(
+        user_repo=user_repo,
     )
 
     reminder_handler = ReminderEventHandler(
@@ -187,7 +274,9 @@ def create_app() -> FastAPI:
 
     # Attach the service to app state so dependencies can access it
     app.state.service = service
-    app.state.user_service = user_service
+    app.state.user_registration_service = user_registration_service
+    app.state.user_authentication_service = user_authentication_service
+    app.state.user_repo = user_repo
 
     # ---------- Routes ----------
 
@@ -195,9 +284,12 @@ def create_app() -> FastAPI:
     def create_habit(
         payload: HabitCreate,
         service: HabitTrackerService = Depends(get_service),
+        current_user: User = Depends(get_current_user),
     ) -> HabitRead:
         schedule = Schedule(payload.schedule)
-        habit = service.create_habit(name=payload.name, schedule=schedule)
+        habit = service.create_habit(
+            name=payload.name, schedule=schedule, user_id=current_user.id
+        )
         return HabitRead(
             id=habit.id,
             name=habit.name,
@@ -208,8 +300,9 @@ def create_app() -> FastAPI:
     @app.get("/habits", response_model=List[HabitRead])
     def list_habits(
         service: HabitTrackerService = Depends(get_service),
+        current_user: User = Depends(get_current_user),
     ) -> List[HabitRead]:
-        habits = service.list_habits()
+        habits = service.list_habits_for_user(current_user.id)
         return [
             HabitRead(
                 id=h.id,
@@ -224,10 +317,14 @@ def create_app() -> FastAPI:
     def complete_habit(
         habit_id: UUID,
         service: HabitTrackerService = Depends(get_service),
+        current_user: User = Depends(get_current_user),
     ) -> CompletionRead:
         try:
-            completion = service.complete_habit(habit_id)
+            completion = service.complete_habit(habit_id, user_id=current_user.id)
         except KeyError:
+            raise HTTPException(status_code=404, detail="Habit not found")
+        except PermissionError:
+            # Return 404 instead of 403 to avoid leaking habit existence
             raise HTTPException(status_code=404, detail="Habit not found")
         return CompletionRead(
             id=completion.id,
@@ -239,10 +336,16 @@ def create_app() -> FastAPI:
     def get_streak(
         habit_id: UUID,
         service: HabitTrackerService = Depends(get_service),
+        current_user: User = Depends(get_current_user),
     ) -> StreakRead:
         try:
-            streak = service.calculate_streak(habit_id=habit_id)
+            streak = service.calculate_streak(
+                habit_id=habit_id, user_id=current_user.id
+            )
         except KeyError:
+            raise HTTPException(status_code=404, detail="Habit not found")
+        except PermissionError:
+            # Return 404 instead of 403 to avoid leaking habit existence
             raise HTTPException(status_code=404, detail="Habit not found")
 
         return StreakRead(
@@ -295,7 +398,7 @@ def create_app() -> FastAPI:
     )
     def register_user(
         payload: UserRegister,
-        service: UserRegistrationService = Depends(get_user_service),
+        service: UserRegistrationService = Depends(get_user_registration_service),
     ) -> UserRead:
         try:
             user = service.register_user(email=payload.email, password=payload.password)
@@ -314,7 +417,7 @@ def create_app() -> FastAPI:
 
     @app.get("/users", response_model=List[UserRead])
     def list_users(
-        service: UserRegistrationService = Depends(get_user_service),
+        service: UserRegistrationService = Depends(get_user_registration_service),
     ) -> List[UserRead]:
         users = service.list_users()
         return [
@@ -326,6 +429,33 @@ def create_app() -> FastAPI:
             )
             for u in users
         ]
+
+    @app.post(
+        "/auth/login", response_model=TokenResponse, status_code=status.HTTP_200_OK
+    )
+    def login(
+        payload: LoginRequest,
+        auth_service: AuthenticationService = Depends(get_user_authentication_service),
+    ) -> TokenResponse:
+        user = auth_service.authenticate(email=payload.email, password=payload.password)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+            )
+
+        # Use subject claim "sub" to store user id (string)
+        token = create_access_token({"sub": str(user.id)})
+
+        return TokenResponse(access_token=token)
+
+    # Test endpoint to get current user
+    @app.get("/me")
+    def read_me(current_user: User = Depends(get_current_user)):
+        return {
+            "id": str(current_user.id),
+            "email": current_user.email,
+        }
 
     return app
 

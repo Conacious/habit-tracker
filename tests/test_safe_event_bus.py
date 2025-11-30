@@ -11,6 +11,7 @@ from habit_tracker.infrastructure.inmemory_repositories import InMemoryHabitRepo
 from habit_tracker.infrastructure.event_bus import InMemoryEventBus
 from habit_tracker.domain.events import HabitCreated
 from datetime import datetime
+from uuid import UUID
 
 
 def test_event_bus_error_handler() -> None:
@@ -36,6 +37,8 @@ def test_event_bus_error_handler() -> None:
     )
 
     with pytest.raises(RuntimeError):
-        habit_tracker_service.create_habit(name="habit", schedule="daily")
+        habit_tracker_service.create_habit(
+            name="habit", schedule="daily", user_id=UUID(int=1)
+        )
 
-    assert len(habit_tracker_service.list_habits()) == 1
+    assert len(habit_tracker_service.list_habits_for_user(user_id=UUID(int=1))) == 1

@@ -12,7 +12,7 @@ from habit_tracker.domain.streak_rules import StreakRule
 from habit_tracker.domain.streak_factory import make_streak_rule
 from habit_tracker.domain.events import DomainEvent
 from habit_tracker.domain.user import User
-from habit_tracker.application.security import hash_password
+from habit_tracker.application.security import hash_password, verify_password
 
 from .repositories import (
     HabitRepository,
@@ -37,9 +37,10 @@ class HabitTrackerService:
     # Habits
     # ------------------------------
 
-    def create_habit(self, name: str, schedule: Schedule) -> Habit:
+    def create_habit(self, name: str, schedule: Schedule, user_id: UUID) -> Habit:
         result = Habit.create(
             name=name,
+            user_id=user_id,
             schedule=schedule,
             clock=self.clock,
         )
@@ -56,12 +57,18 @@ class HabitTrackerService:
     def list_habits(self) -> list[Habit]:
         return self.habit_repo.list_all()
 
+    def list_habits_for_user(self, user_id: UUID) -> list[Habit]:
+        return self.habit_repo.list_by_user_id(user_id)
+
     # ------------------------------
     # Completions
     # ------------------------------
 
-    def complete_habit(self, habit_id: UUID) -> Completion:
+    def complete_habit(self, habit_id: UUID, user_id: UUID) -> Completion:
         habit = self.habit_repo.get(habit_id)
+
+        if habit.user_id != user_id:
+            raise PermissionError("Habit does not belong to user")
 
         result = Completion.record(
             habit=habit,
@@ -84,9 +91,14 @@ class HabitTrackerService:
     def calculate_streak(
         self,
         habit_id: UUID,
+        user_id: UUID,
         rule: StreakRule | None = None,
     ) -> Streak:
         habit = self.habit_repo.get(habit_id)
+
+        if habit.user_id != user_id:
+            raise PermissionError("Habit does not belong to user")
+
         completions = self.completion_repo.list_for_habit(habit_id)
         now = self.clock.now()
 
@@ -151,3 +163,14 @@ class UserRegistrationService:
 
     def list_users(self) -> list[User]:
         return self.user_repo.list_all()
+
+
+@dataclass
+class AuthenticationService:
+    user_repo: UserRepository
+
+    def authenticate(self, email: str, password: str) -> User | None:
+        user = self.user_repo.get_by_email(email)
+        if user is None or not verify_password(password, user.hashed_password):
+            return None
+        return user

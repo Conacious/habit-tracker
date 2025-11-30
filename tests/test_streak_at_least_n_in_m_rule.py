@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from habit_tracker.domain.streak_rules import AtLeastNDaysInLastMDaysRule
 from habit_tracker.domain.habit import Habit
@@ -24,6 +24,7 @@ def test_calculate_not_enough():
     rule = AtLeastNDaysInLastMDaysRule(n=3, m=7)
     habit = Habit(
         id=uuid4(),
+        user_id=UUID(int=1),
         name="Test Habit",
         schedule=Schedule("daily"),
         created_at=datetime(2023, 1, 1),
@@ -49,6 +50,7 @@ def test_calculate_enough():
     rule = AtLeastNDaysInLastMDaysRule(n=3, m=7)
     habit = Habit(
         id=uuid4(),
+        user_id=UUID(int=1),
         name="Test Habit",
         schedule=Schedule("daily"),
         created_at=datetime(2023, 1, 1),
@@ -76,6 +78,7 @@ def test_calculate_outside_window():
     rule = AtLeastNDaysInLastMDaysRule(n=1, m=3)  # Last 3 days (72 hours)
     habit = Habit(
         id=uuid4(),
+        user_id=UUID(int=1),
         name="Test Habit",
         schedule=Schedule("daily"),
         created_at=datetime(2023, 1, 1),
@@ -97,6 +100,7 @@ def test_calculate_exact_boundary():
     rule = AtLeastNDaysInLastMDaysRule(n=1, m=1)  # Last 24 hours
     habit = Habit(
         id=uuid4(),
+        user_id=UUID(int=1),
         name="Test Habit",
         schedule=Schedule("daily"),
         created_at=datetime(2023, 1, 1),

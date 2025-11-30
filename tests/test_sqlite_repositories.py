@@ -15,6 +15,7 @@ from habit_tracker.infrastructure.sqlite_repositories import (
     SQLiteUserRepository,
 )
 from tests.utils import FakeClock
+from uuid import uuid4, UUID
 
 
 def _make_connection() -> sqlite3.Connection:
@@ -22,9 +23,20 @@ def _make_connection() -> sqlite3.Connection:
     return conn
 
 
-def _create_habit(clock: FakeClock, habit_repo: SQLiteHabitRepository) -> Habit:
+def _create_habit(
+    clock: FakeClock, habit_repo: SQLiteHabitRepository, user_repo: SQLiteUserRepository
+) -> Habit:
+    # Create user first to satisfy foreign key constraint
+    user = User.create(
+        email="test@example.com",
+        hashed_password="hashed",
+        clock=clock,
+    )
+    user_repo.add(user)
+
     result = Habit.create(
         name="Test habit",
+        user_id=user.id,
         schedule=Schedule("daily"),
         clock=clock,
     )
@@ -48,9 +60,10 @@ def _record_completion(habit: Habit, clock: FakeClock) -> Completion:
 def test_sqlite_habit_repository_roundtrip() -> None:
     conn = _make_connection()
     habit_repo = SQLiteHabitRepository(conn)
+    user_repo = SQLiteUserRepository(conn)
     clock = FakeClock(datetime(2025, 1, 1, 9, 0, 0))
 
-    habit = _create_habit(clock, habit_repo)
+    habit = _create_habit(clock, habit_repo, user_repo)
 
     loaded = habit_repo.get(habit.id)
     assert loaded == habit
@@ -66,10 +79,11 @@ def test_sqlite_habit_repository_roundtrip() -> None:
 def test_sqlite_completion_repository_roundtrip() -> None:
     conn = _make_connection()
     habit_repo = SQLiteHabitRepository(conn)
+    user_repo = SQLiteUserRepository(conn)
     completion_repo = SQLiteCompletionRepository(conn)
     clock = FakeClock(datetime(2025, 1, 1, 9, 0, 0))
 
-    habit = _create_habit(clock, habit_repo)
+    habit = _create_habit(clock, habit_repo, user_repo)
 
     # Two completions on different days
     c1 = _record_completion(habit, clock)
@@ -94,11 +108,22 @@ def test_sqlite_reminder_repository_roundtrip() -> None:
     conn = _make_connection()
     reminder_repo = SQLiteReminderRepository(conn)
     habit_repo = SQLiteHabitRepository(conn)
+    user_repo = SQLiteUserRepository(conn)
+    clock = FakeClock(datetime(2025, 1, 1, 9, 0, 0))
+
+    # Create user first
+    user = User.create(
+        email="test@example.com",
+        hashed_password="hashed",
+        clock=clock,
+    )
+    user_repo.add(user)
 
     habit_id = Habit.create(
         name="Temp",
+        user_id=user.id,
         schedule=Schedule("daily"),
-        clock=FakeClock(datetime(2025, 1, 1, 9, 0, 0)),
+        clock=clock,
     )
     # Habit.create may return (habit, event)
     if isinstance(habit_id, tuple):

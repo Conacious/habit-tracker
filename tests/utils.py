@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 from datetime import datetime
 from habit_tracker.domain import Habit, Completion, Schedule, HabitCompleted
+from uuid import UUID
 
 test_schedule = Schedule(raw="daily")
 
@@ -26,6 +27,7 @@ def make_habit_and_completion(
 ) -> tuple[Habit, Completion, HabitCompleted]:
     habit, _ = Habit.create(
         name=name,
+        user_id=UUID(int=1),
         schedule=schedule,
         clock=clock,
     )

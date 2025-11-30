@@ -9,12 +9,14 @@ from habit_tracker.domain.streak import Streak
 from habit_tracker.domain.streak_rules import DailyStreakRule
 
 from tests.utils import FakeClock
+from uuid import UUID
 
 
 def _create_habit(clock: FakeClock) -> Habit:
     """Helper to handle Habit.create returning Habit or (Habit, Event)."""
     result = Habit.create(
         name="Daily habit",
+        user_id=UUID(int=1),
         schedule=Schedule("daily"),
         clock=clock,
     )
