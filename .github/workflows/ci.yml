@@ -1,4 +1,4 @@
-name: CI
+name: CI Benchmark
 
 on:
   push:
@@ -7,10 +7,22 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch: {}  # so you can trigger benchmarks manually
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: ${{ matrix.runner }} (iter ${{ matrix.iteration }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-latest
+          - ubuntu-slim
+        iteration:
+          - 1
+          - 2
+          - 3
 
     steps:
       - name: Checkout code
@@ -22,22 +34,68 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
+        id: install_deps
         run: |
+          start=$(date +%s)
+
           pip install poetry
           poetry install --no-root
 
+          end=$(date +%s)
+          echo "duration=$((end-start))" >> "$GITHUB_OUTPUT"
+
       - name: Run ruff and mypy
+        id: lint_mypy
         run: |
           set -e
+          start=$(date +%s)
+
           poetry run ruff check
           poetry run mypy
 
+          end=$(date +%s)
+          echo "duration=$((end-start))" >> "$GITHUB_OUTPUT"
+
       - name: Run tests with coverage
+        id: tests
         run: |
+          start=$(date +%s)
+
           poetry run pytest --cov=habit_tracker --cov-report=term-missing --cov-report=xml
+
+          end=$(date +%s)
+          echo "duration=$((end-start))" >> "$GITHUB_OUTPUT"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-xml
+          # Include runner + iteration so they don't overwrite each other
+          name: coverage-xml-${{ matrix.runner }}-iter-${{ matrix.iteration }}
           path: coverage.xml
+
+      - name: Benchmark summary
+        if: always()
+        env:
+          DEPS_DURATION: ${{ steps.install_deps.outputs.duration }}
+          LINT_DURATION: ${{ steps.lint_mypy.outputs.duration }}
+          TESTS_DURATION: ${{ steps.tests.outputs.duration }}
+        run: |
+          # Fallback to 0 if any step was skipped/failed before setting duration
+          deps=${DEPS_DURATION:-0}
+          lint=${LINT_DURATION:-0}
+          tests=${TESTS_DURATION:-0}
+          total=$((deps + lint + tests))
+
+          {
+            echo "## CI benchmark – \`${{ matrix.runner }}\` (iteration ${{ matrix.iteration }})"
+            echo ""
+            echo "| Step                 | Duration (s) |"
+            echo "|----------------------|-------------:|"
+            echo "| Install dependencies | $deps        |"
+            echo "| Ruff + mypy          | $lint        |"
+            echo "| Tests + coverage     | $tests       |"
+            echo "| **Total (sum)**      | **$total**   |"
+            echo ""
+            echo "- Runner: \`${{ matrix.runner }}\`"
+            echo "- Iteration: \`${{ matrix.iteration }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
